@@ -1,0 +1,56 @@
+{
+  "name": "sosupp/slimer-tenancy",
+  "description": "A simple and slimer mulit-tenancy package for laravel. A drop in!",
+  "keywords": [
+    "sosupp",
+    "slim-dashboard"
+  ],
+  "homepage": "https://github.com/sosupp/slimer-tenancy",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Prosper Sosu",
+      "email": "prospersosu@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Sosupp\\SlimerTenancy\\": "src/"
+    },
+    "files": [
+      "src/helpers.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Sosupp\\SlimerTenancy\\Tests\\": "tests"
+    }
+  },
+  "require": {
+    "php": "^8.0|^8.1|^8.2|^8.3",
+    "illuminate/support": "*"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^10.4",
+    "phpunit/phpunit": "^12.3"
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Sosupp\\SlimerTenancy\\SlimerTenancyServiceProvider"
+      ],
+      "aliases": {
+        "SlimerTenancy": "Sosupp\\SlimerTenancy\\SlimerTenancyFacade"
+      }
+    }
+  }
+}
