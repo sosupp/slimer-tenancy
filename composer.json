@@ -1,9 +1,9 @@
 {
   "name": "sosupp/slimer-tenancy",
-  "description": "A simple and slimer mulit-tenancy package for laravel. A drop in!",
+  "description": "An opinionated simple and slimer mulit-tenancy package for laravel. A drop in!",
   "keywords": [
     "sosupp",
-    "slim-dashboard"
+    "slimer-tenancy"
   ],
   "homepage": "https://github.com/sosupp/slimer-tenancy",
   "type": "library",
