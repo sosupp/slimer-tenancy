@@ -17,7 +17,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "Sosupp\\SlimerTenancy\\": "src/"
+      "Sosupp\\SlimerTenancy\\": "src"
     },
     "files": [
       "src/helpers.php"
@@ -30,7 +30,9 @@
   },
   "require": {
     "php": "^8.0|^8.1|^8.2|^8.3",
-    "illuminate/support": "*"
+    "illuminate/support": "*",
+    "sosupp/slim-dashboard": "^1.37",
+    "spatie/laravel-permission": "^6.23"
   },
   "require-dev": {
     "orchestra/testbench": "^10.4",
