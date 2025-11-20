@@ -45,7 +45,10 @@ class LandlordCrudService implements Crudable
         );
 
         if(is_null($id)){
-            event(new LandlordCreated($admin));
+            event(new LandlordCreated(
+                $admin,
+                $password,
+            ));
         }
 
         return $admin;

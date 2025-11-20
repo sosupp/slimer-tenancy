@@ -11,7 +11,8 @@ class LandlordCreated
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public $landlord
+        public $landlord,
+        public $password,
     )
     {
         //
