@@ -14,7 +14,7 @@ class Landlord extends Authenticatable
         SoftDeletes, CommonScopes;
 
     protected $connection = 'pgsql';   // <— IMPORTANT
-    protected $table = 'landlord.landlord';
+    protected $table = 'landlord.landlords';
 
     protected $fillable = [
         'role_id', 'name', 'email', 'phone',
