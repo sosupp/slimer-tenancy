@@ -16,8 +16,10 @@ return new class extends Migration
 
         Schema::connection('pgsql')->create('landlord.tenants', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name');
             $table->string('slug')->unique(); // or subdomain
+            $table->string('key')->nullable()->unique();
+            $table->string('subdomain')->nullable()->unique();
             $table->string('domain')->nullable()->unique();
             $table->string('db')  ->nullable(); // for per-db strategy
             $table->string('schema')->nullable(); // for per-schema strategy

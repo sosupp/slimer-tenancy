@@ -6,9 +6,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\Tenancy\TenantManagerService;
 use Symfony\Component\HttpFoundation\Response;
-use App\Services\Tenancy\TenantResolverService;
+use Sosupp\SlimerTenancy\Services\Tenant\TenantManagerService;
+use Sosupp\SlimerTenancy\Services\Tenant\TenantResolverService;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class InitializeTenancy

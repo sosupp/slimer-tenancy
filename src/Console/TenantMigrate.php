@@ -2,13 +2,13 @@
 
 namespace Sosupp\SlimerTenancy\Console;
 
-use App\Models\Tenant;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use App\Services\Access\RolesCrudService;
 use App\Services\Employees\UserCrudService;
-use App\Services\Tenancy\TenantManagerService;
 use App\Services\Employees\EmployeeCrudService;
+use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
+use Sosupp\SlimerTenancy\Services\Tenant\TenantManagerService;
 
 class TenantMigrate extends Command
 {
@@ -17,7 +17,7 @@ class TenantMigrate extends Command
      *
      * @var string
      */
-    protected $signature = 'app:tenant-migrate
+    protected $signature = 'slimer:tenant-migrate
                     {--tenant=} {--owner} {--fresh} {--refresh} {--seed}
                     ';
 

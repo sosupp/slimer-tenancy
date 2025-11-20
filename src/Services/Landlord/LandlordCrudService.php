@@ -1,42 +1,62 @@
 <?php
-namespace Sosupp\SlimerTenancy\Services\Tenant;
+namespace Sosupp\SlimerTenancy\Services\Landlord;
 
+use Illuminate\Support\Facades\Hash;
 use Sosupp\SlimDashboard\Contracts\Crudable;
-use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
+use Sosupp\SlimerTenancy\Models\Landlord\Landlord;
+use Sosupp\SlimDashboard\Concerns\GeneratePassword;
 use Sosupp\SlimDashboard\Concerns\Filters\CommonFilters;
 use Sosupp\SlimDashboard\Concerns\Filters\WithDateFormat;
+use Sosupp\SlimerTenancy\Events\Landlord\LandlordCreated;
 
-class TenantCrudService implements Crudable
+class LandlordCrudService implements Crudable
 {
-    use CommonFilters, WithDateFormat;
+    use CommonFilters, WithDateFormat, GeneratePassword;
 
-    public function make(?int $id, array $data)
+    public function make(?int $id, array $data, $testUser = false)
     {
-        return Tenant::query()
+
+        $password = config('app.env') === 'local'
+            ? 'password' : $this->randomPass();
+
+        if($testUser){
+            $password = 'password';
+        }
+
+        $cryptPassword =  Hash::make($password);
+
+        $standardCols = [
+            'role_id' => $data['role'] ?? null,
+            'type' => $data['adminType'] ?? null,
+            'name' => $data['name'] ?? '',
+            'phone' => $data['phone'],
+        ];
+
+        $addColumn = [
+            'password' => $cryptPassword,
+        ];
+
+        $useColumns = $standardCols + $addColumn;
+
+        $admin = Landlord::query()
         ->updateOrCreate(
-            [
-                'name' => $data['name']
-            ],
-            [
-                'slug' => str($data['name'])->slug(),
-                'key' => $data['subdomain'] ?? null,
-                'subdomain' => $data['subdomain'] ?? null,
-                'domain' => $data['domain'] ?? null,
-                'db' => $data['db'] ?? null,
-                'schema' => $data['schema'] ?? null,
-                'meta' => $data['meta'] ?? null,
-                'owner' => $data['owner'] ?? null,
-                'email' => $data['email'] ?? null,
-                'phone' => $data['phone'] ?? null,
-                'status' => $data['status'] ?? 'active',
-                'disabled_at' => $data['disabledDate'] ?? null,
-            ]
+            ['email' => $data['email']],
+            $id == null ? $useColumns : $standardCols
         );
+
+        if(is_null($id)){
+            event(new LandlordCreated($admin));
+        }
+
+        return $admin;
+
+
     }
+
 
     public function one(int|string $id)
     {
-        return Tenant::query()
+        return Landlord::query()
         ->where('id', $id)
         ->status(status: $this->status)
         ->first();
@@ -44,7 +64,7 @@ class TenantCrudService implements Crudable
 
     public function list(int|null $limit = 12, array $cols = ['*'])
     {
-        return Tenant::query()
+        return Landlord::query()
         ->when($this->withTrashed, function($query){
             $query->withTrashed();
         })
@@ -59,7 +79,7 @@ class TenantCrudService implements Crudable
 
     public function paginate(int|null $limit = 12, array $cols = ['*'])
     {
-        return Tenant::query()
+        return Landlord::query()
         ->when($this->withTrashed, function($query){
             $query->withTrashed();
         })

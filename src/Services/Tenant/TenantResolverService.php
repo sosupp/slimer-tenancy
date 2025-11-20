@@ -10,11 +10,17 @@ use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
 
 class TenantResolverService
 {
+
+    protected $resolvedTenant = null;
+
     public function resolve(Request $request): ?Tenant
     {
         // dd(config('slimertenancy.enabled'));
         if(config('slimertenancy.enabled')){
             // return null;
+            if($this->resolvedTenant !== null){
+                return $this->resolvedTenant;
+            }
 
             $host = $request->getHost();
 
@@ -27,7 +33,7 @@ class TenantResolverService
 
                 if($tenant){
                     $this->switchConnection($tenant);
-                    return $tenant;
+                    return $this->resolvedTenant = $tenant;
                 }
             }
 
@@ -38,7 +44,7 @@ class TenantResolverService
             // if ($tenant) return $tenant;
             if($tenant){
                 $this->switchConnection($tenant);
-                return $tenant;
+                return $this->resolvedTenant = $tenant;
             }
 
             // 3) Path prefix (/t/{slug})
@@ -50,7 +56,7 @@ class TenantResolverService
 
                     if($tenant){
                         $this->switchConnection($tenant);
-                        return $tenant;
+                        return $this->resolvedTenant = $tenant;
                     }
                 }
             }
@@ -61,11 +67,11 @@ class TenantResolverService
                 // if ($tenant) return $tenant;
                 if($tenant){
                     $this->switchConnection($tenant);
-                    return $tenant;
+                    return $this->resolvedTenant = $tenant;
                 }
             }
 
-            return null;
+            return $this->resolvedTenant;
         }
 
         return null;

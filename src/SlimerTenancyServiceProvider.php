@@ -1,13 +1,14 @@
-
-
 <?php
 namespace Sosupp\SlimerTenancy;
 
-
-
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Sosupp\SlimerTenancy\Services\Tenancy\TenantResolverService;
+use Sosupp\SlimerTenancy\Console\LandlordAdmin;
+use Sosupp\SlimerTenancy\Console\TenantCreate;
+use Sosupp\SlimerTenancy\Console\TenantMigrate;
+use Sosupp\SlimerTenancy\Console\LandlordMigrate;
+use Sosupp\SlimerTenancy\Services\Tenant\TenantResolverService;
 
 
 class SlimerTenancyServiceProvider extends ServiceProvider
@@ -18,6 +19,7 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     public function register()
     {
         // Register bindings, singletons, etc.
+        $this->app->singleton(TenantResolverService::class);
     }
 
     /**
@@ -26,31 +28,43 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     public function boot()
     {
         // Publish config, migrations, routes, etc.
-
-        $this->publishes([
-            __DIR__.'/../config/config.php' => config_path('slimertenancy.php'),
-        ]); 
-
         $this->decideConnection();
 
-    
+        if($this->app->runningInConsole()){
+            $this->publishes([
+                __DIR__.'/../config/config.php' => config_path('slimertenancy.php'),
+            ], 'slimer-tenancy-config');
+
+            $this->publishes([
+                __DIR__.'/../database/migrations' => database_path('migrations'),
+            ], 'slimer-landlord-migrations');
+
+            // Commands
+            $this->customCommands();
+        }
     }
 
     protected function decideConnection()
     {
-        if(config('slimer.tenancy.enabled')){
+        // dd($this->app);
+        if(config('slimertenancy.enabled')){
+
             if(!isLandlord()){
                 return $this->configureTenantConnection();
             }
-    
+
+            // dd("is landlord");
+            // Most possible a landlord
             config([
                 'database.connections.pgsql.schema' => 'landlord',
                 'database.connections.pgsql.search_path' => 'landlord,public',
             ]);
-    
+
             DB::purge('pgsql');
             DB::purge('tenant');
             DB::reconnect('pgsql');
+
+            $this->loadLandlordRoutes();
         }
     }
 
@@ -58,29 +72,42 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     {
         $tenant = (new TenantResolverService)->resolve(request: request());
 
-        // dd($tenant, $tenant?->schema);
         // If tenant continue else back to landing page
         if($tenant){
-            config([
-                'database.connections.tenant.schema' => $tenant->schema,
-                'database.connections.tenant.search_path' => $tenant->schema . ',public',
-            ]);
-
-            config(['database.default' => 'tenant']);
-
-            DB::purge('pgsql');
-            DB::purge('tenant');
-            DB::reconnect('tenant');
-
-            return;
+            return $this->loadTenantRoutes();
         }
 
+        // No Tenant found: Return to landing page
+        redirect()->away(request()->getScheme() . "://".rootDomain());
+    }
 
-        // dd("not a tenant");
+    protected function customCommands()
+    {
+        $this->commands([
+            LandlordMigrate::class,
+            LandlordAdmin::class,
+            TenantMigrate::class,
+            TenantCreate::class,
+        ]);
+    }
 
-        // Return to landing page
+    protected function loadLandlordRoutes()
+    {
+        if($this->app->booted(function(){
+            // dd('ddd');
+            return Route::middleware(['web'])
+            ->group(base_path('routes/landlord.php'));
+        }));
 
-        return redirect()->away(request()->getScheme() . "://".rootDomain());
+    }
+
+    protected function loadTenantRoutes()
+    {
+        if($this->app->booted(function(){
+
+            Route::middleware(['web'])
+            ->group(base_path('routes/tenant.php'));
+        }));
     }
 
 }

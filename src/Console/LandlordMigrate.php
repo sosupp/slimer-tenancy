@@ -13,7 +13,7 @@ class LandlordMigrate extends Command
      *
      * @var string
      */
-    protected $signature = 'app:landlord-migrate {--fresh} {--refresh} {--seed}';
+    protected $signature = 'slimer:landlord-migrate {--fresh} {--refresh} {--seed}';
 
     /**
      * The console command description.

@@ -2,8 +2,6 @@
 namespace Sosupp\SlimerTenancy\Services\Tenant;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
 use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
 
 class TenantManagerService
