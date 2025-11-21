@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('status')->default('active');
+            $table->boolean('is_deployed')->default(false);
             $table->timestamp('disabled_at')->nullable();
             $table->softDeletes();
             $table->timestamps();
