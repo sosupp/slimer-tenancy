@@ -19,7 +19,8 @@ class Tenant extends Model
     protected $fillable = [
         'name', 'slug', 'domain', 'key', 'subdomain',
         'db', 'schema', 'meta', 'disabled_at',
-        'owner', 'email', 'phone', 'status', 'is_deployed'
+        'owner', 'email', 'phone', 'status', 'is_deployed',
+        'country_id'
     ];
 
     protected $casts = [

@@ -16,6 +16,7 @@ return new class extends Migration
 
         Schema::connection('pgsql')->create('landlord.tenants', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('country_id')->nullable();
             $table->string('name');
             $table->string('slug')->unique(); // or subdomain
             $table->string('key')->nullable()->unique();
