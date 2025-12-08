@@ -2,7 +2,7 @@
 
 
 return [
-    'enabled' => env('SLIMER_TENANCY_ENABLED', true),
+    'enabled' => env('SLIMER_TENANCY_ENABLED', false),
 
     'root' => [
         'domain' => env('SLIMER_TENANCY_ROOT_DOMAIN', 'susu-crm.test'),

@@ -4,8 +4,9 @@ namespace Sosupp\SlimerTenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Sosupp\SlimerTenancy\Console\LandlordAdmin;
 use Sosupp\SlimerTenancy\Console\TenantCreate;
+use Sosupp\SlimerTenancy\Console\LandlordAdmin;
+use Sosupp\SlimerTenancy\Console\SlimerInstall;
 use Sosupp\SlimerTenancy\Console\TenantMigrate;
 use Sosupp\SlimerTenancy\Console\LandlordMigrate;
 use Sosupp\SlimerTenancy\Services\Tenant\TenantResolverService;
@@ -36,7 +37,7 @@ class SlimerTenancyServiceProvider extends ServiceProvider
             ], 'slimer-tenancy-config');
 
             $this->publishes([
-                __DIR__.'/../database/migrations' => database_path('migrations'),
+                __DIR__.'/../database/migrations' => database_path('migrations/landlord'),
             ], 'slimer-landlord-migrations');
 
             // Commands
@@ -84,6 +85,7 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     protected function customCommands()
     {
         $this->commands([
+            SlimerInstall::class,
             LandlordMigrate::class,
             LandlordAdmin::class,
             TenantMigrate::class,
