@@ -6,17 +6,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Spatie\Permission\PermissionRegistrar;
-use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
 
 class TenantResolverService
 {
 
     protected $resolvedTenant = null;
 
-    public function resolve(Request $request): ?Tenant
+    public function resolve(Request $request)
     {
         // dd(config('slimertenancy.enabled'));
         if(config('slimertenancy.enabled')){
+            $useTenant = config('slimertenancy.tenant.model');
             // return null;
             if($this->resolvedTenant !== null){
                 return $this->resolvedTenant;
@@ -24,13 +24,15 @@ class TenantResolverService
 
             $host = $request->getHost();
 
+
+
             // 1) Subdomain (acme.yourapp.com)
             $parts = explode('.', $host);
             $sub = $parts[0] ?? null;
             if ($sub && $sub !== 'www' && $sub !== config('slimertenancy.root.domain')) {
-                $tenant = Tenant::where('subdomain', $sub)->first();
+                $tenant = $useTenant::where('subdomain', $sub)->first();
                 // if ($tenant) return $tenant;
-
+                // dd($host, $tenant, $sub, $useTenant);
                 if($tenant){
                     $this->switchConnection($tenant);
                     return $this->resolvedTenant = $tenant;
@@ -38,7 +40,7 @@ class TenantResolverService
             }
 
             // 2) Domain
-            $tenant = Tenant::where('domain', $host)->first();
+            $tenant = $useTenant::where('domain', $host)->first();
 
             // dd($host, $tenant);
             // if ($tenant) return $tenant;
@@ -51,7 +53,7 @@ class TenantResolverService
             if ($request->segment(1) === 't') {
                 $slug = $request->segment(2);
                 if ($slug) {
-                    $tenant = Tenant::where('slug', $slug)->first();
+                    $tenant = $useTenant::where('slug', $slug)->first();
                     // if ($tenant) return $tenant;
 
                     if($tenant){
@@ -63,7 +65,7 @@ class TenantResolverService
 
             // 4) Header
             if ($h = $request->header('X-Tenant')) {
-                $tenant = Tenant::where('slug', $h)->first();
+                $tenant = $useTenant::where('slug', $h)->first();
                 // if ($tenant) return $tenant;
                 if($tenant){
                     $this->switchConnection($tenant);
