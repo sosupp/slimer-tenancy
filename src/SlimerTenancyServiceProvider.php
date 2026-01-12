@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Sosupp\SlimerTenancy\Console\TenantCreate;
 use Sosupp\SlimerTenancy\Console\LandlordAdmin;
+use Sosupp\SlimerTenancy\Console\LandlordInstall;
 use Sosupp\SlimerTenancy\Console\SlimerInstall;
 use Sosupp\SlimerTenancy\Console\TenantMigrate;
 use Sosupp\SlimerTenancy\Console\LandlordMigrate;
@@ -87,6 +88,7 @@ class SlimerTenancyServiceProvider extends ServiceProvider
         $this->commands([
             SlimerInstall::class,
             LandlordMigrate::class,
+            LandlordInstall::class,
             LandlordAdmin::class,
             TenantMigrate::class,
             TenantCreate::class,

@@ -1,0 +1,13 @@
+<?php
+
+namespace {{ namespace }};
+
+use Livewire\Component;
+
+class LandlordHome extends BaseLayout
+{
+    public function render()
+    {
+        return view('livewire.landlord.home');
+    }
+}

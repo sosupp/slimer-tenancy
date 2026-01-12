@@ -1,0 +1,236 @@
+<?php
+namespace {{ namespace }};
+
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
+use Illuminate\Support\Collection;
+use Illuminate\Contracts\View\View;
+use Sosupp\SlimDashboard\Html\HtmlForm;
+use Sosupp\SlimDashboard\Html\ListCard;
+use Sosupp\SlimDashboard\Html\PageCtas;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimDashboard\Html\PageFilter;
+use Sosupp\SlimDashboard\Html\Tables\Rows;
+
+use Sosupp\SlimDashboard\Html\Tables\Columns;
+use Sosupp\SlimDashboard\ValueObjects\CardEdit;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Livewire\Tables\BaseTable;
+use Sosupp\SlimerTenancy\Models\Landlord\DemoAccount;
+use Sosupp\SlimDashboard\Concerns\Filters\WithDateFilters;
+use Sosupp\SlimerTenancy\Services\Landlord\DemoCrudService;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+
+
+class DemoList extends BaseTable
+{
+    use StatusToggleable, HasModalPanel,
+        WithDateFilters, HandlesImageUploads ;
+
+
+    public $selectedModelId;
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+
+
+    public function mount()
+    {
+        $this->subnav = 'change me';
+    }
+
+    public function useModel()
+    {
+        return DemoAccount::class;
+    }
+
+    public function useCustomTable() { }
+
+    public function tableCols()
+    {
+        return Columns::make()
+        ->column(name: 'compnay', label: 'business')
+        ->column(name: 'short_name', label: 'sub-domain')
+        ->column(name: 'owner', label: 'owner')
+        ->column(name: 'email', label: 'email')
+        ->column(name: 'phone', label: 'phone')
+        ->column(
+            name: 'is_verified', label: 'verified',
+            callback: fn($demo) => (bool) $demo->is_verified ? 'True' : 'False'
+        )
+        ->build();
+    }
+
+    #[Computed]
+    public function tableRecords()
+    {
+        return (new DemoCrudService)
+        ->search(term: $this->search)
+        ->withTrashed()
+        ->orderBy(direction: 'desc')
+        ->forDate(date: $this->selectedDate)
+        ->paginate(limit: $this->recordPerPage);
+    }
+
+    public function tableActions()
+    {
+        return Rows::action(name: 'manage', link: '')
+        ->action(name: 'edit', link: '')
+        ->action(name: 'delete', link: '')
+        ->make();
+    }
+
+    public function pageCta()
+    {
+        return PageCtas::cta(
+            type: 'link', label: 'Add', route: null,
+             withSidePanel: true, component: 'makeForm',
+        )
+        ->make();
+    }
+
+    public function pageFilters()
+    {
+        return PageFilter::filter(
+            type: 'dropdown',
+            label: 'Date',
+            id: 'filterDates',
+            options: $this->dateFilterOptions()->toArray(),
+            optionKey: 'name',
+            optionId: 'name',
+            wireAction: 'selectedCustomDateFilter'
+        )->make();
+    }
+
+    public function defineSearch() { }
+
+    public function showPagination()
+    {
+        return true;
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'Change me', url: '', isBase: false, isCurrent: true)
+        ->make();
+    }
+
+    // Mobile listings
+    public function hasCardListing()
+    {
+        return true;
+    }
+
+    public function cardContents()
+    {
+        return ListCard::content()
+        ->row(name: 'id', label: '#', key: 'id')
+        ->make();
+    }
+
+    public function withListCardEdit($record): CardEdit|Collection|false
+    {
+        return false;
+        return (new CardEdit(
+            title: 'EDIT: ',
+            form: ''
+        ));
+    }
+
+    public function mobileEditImageName($record): string
+    {
+        return '';
+    }
+
+    public function withCardModalData($record): Collection
+    {
+        return collect([
+            'title' => '',
+            'image' => '',
+            'edit' => '',
+        ]);
+    }
+
+    public function withCardModalView(): string|View
+    {
+        return <<<HTML
+            <div class="card-item-modal-details">
+                <p><b>Item Count: </b><span x-text="cardItem[1]"></span></p>
+                <p><b>Order Date: </b><span x-text="cardItem[2]"></span></p>
+                <p><b>Delivery Method: </b><span x-text="cardItem[3]"></span></p>
+                <p><b>Current Status: </b><span x-text="cardItem[4]"></span></p>
+            </div>
+
+            <div class="card-item-modal-ctas">
+                <button type="button" class="cta-btn card-item-modal-cta as-pointer"
+                    >Preview</button>
+            </div>
+        HTML;
+    }
+
+    public function withListCardImage(): string|View
+    {
+        // return 'editable' to make image uploadable inline
+        return '';
+    }
+
+
+    // Inline form CRUD
+    public function sidePanelModel($id)
+    {
+        // Below is the selected model to use
+        $this->selectedModelId = $id; // You can change property name
+        $model = $this->tableRecords->where('id', $id)->first();
+
+        // More code here
+
+    }
+
+    public function panelExtraView(): string|View
+    {
+        return '';
+        return HtmlForm::make()
+        ->specialInput()
+        ->input(name: 'name', label: 'Name')
+        ->inlineImageInput(name: 'image', label: 'Image')
+        ->button(label: 'save')
+        ->build();
+    }
+
+    public function save()
+    {
+        $validated = $this->validate(
+            rules: []
+        );
+
+        // dd($validated);
+
+        $result = (new DemoCrudService)->make(
+            id: $this->selectedModelId,
+            data: $validated,
+        );
+
+        if($result){
+            $this->reset('selectedModelId');
+
+            $this->successAlert(message: 'Record action successful...');
+        }
+    }
+
+    public function makeForm()
+    {
+        // Reset properties that are needed
+        $this->reset('selectedModelId');
+        return $this->panelExtraView();
+    }
+
+    public function updateForm()
+    {
+        return $this->panelExtraView();
+    }
+
+
+}

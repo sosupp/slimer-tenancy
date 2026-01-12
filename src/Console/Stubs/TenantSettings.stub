@@ -1,0 +1,62 @@
+<?php
+
+namespace {{ namespace }};
+
+use Livewire\Attributes\Layout;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use App\Livewire\Traits\Landlord\TenantSettings;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
+use Sosupp\SlimDashboard\Livewire\Pages\BasePage;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+
+
+class TenantSetting extends BasePage
+{
+    use HandlesImageUploads, HasModalPanel,
+        TenantSettings;
+
+    public ?Tenant $tenant = null;
+
+    public function mount()
+    {
+        // dd($this->tenant);
+        // dd($this->tenant, $this->getTenantSettings());
+    }
+
+
+    public function sidePanelModel($id)
+    {
+
+    }
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+
+    public function customImagePropertyName()
+    {
+        // return a string representation of a property name that will replace default $imagePath
+        return '';
+    }
+
+
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'change me', url: null, isBase: true)
+        ->make();
+    }
+
+    public function updateSetting()
+    {
+
+    }
+
+
+    public function withRender()
+    {
+        return view('livewire.landlord.vendor-setting');
+    }
+}

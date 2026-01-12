@@ -1,0 +1,108 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Model;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
+use Sosupp\SlimerTenancy\Traits\WithTenantAware;
+use Sosupp\SlimDashboard\Livewire\Pages\BasePage;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+
+class TenantOverview extends BasePage
+{
+    use HandlesImageUploads,
+        HasModalPanel, WithTenantAware;
+
+    public ?Tenant $tenant = null;
+
+    public $accountsSummary = [];
+    public $transactionsSummary = [];
+    public $smsSummary = [];
+
+    public function mount()
+    {
+        $this->getOverviewData();
+    }
+
+    public function sidePanelModel($id)
+    {
+        throw new \Exception('Not implemented');
+    }
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+
+    public function customImagePropertyName()
+    {
+        // return a string representation of a property name that will replace default $imagePath
+        return '';
+    }
+
+    public function withMobileFilters()
+    {
+        return false;
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'change me', url: null, isBase: true)
+        ->make();
+    }
+
+
+    public function withRender()
+    {
+        return view('livewire.landlord.vendor-overview');
+    }
+
+    public function widgetsData(): array
+    {
+
+        return [
+            [
+                'label' => 'Accounts',
+                'icon' => view('components.icons.special.money', [
+                    'fill' => 'purple'
+                ]),
+                'count' => [],
+                'sums' => $this->accountsSummary,
+                'route' => null,
+            ],
+            [
+                'label' => 'Transactions',
+                'icon' => view('components.icons.special.deposit'),
+                'count' => [],
+                'sums' => $this->transactionsSummary,
+                'route' => null,
+            ],
+            [
+                'label' => 'SMS',
+                'icon' => view('components.icons.special.withdraw',[
+                    'fill' => 'red'
+                ]),
+                'count' => [],
+                'sums' => $this->smsSummary,
+                'route' => null,
+            ],
+        ];
+    }
+
+    public function getOverviewData()
+    {
+        return $this->inTenant($this->tenant, function(){
+            // Perform some call back actions here. 
+            // Example
+            // $this->accountsSummary = groupedCount(
+            //     modelClass: Model::class,
+            // );
+
+            
+
+        });
+    }
+
+}

@@ -1,0 +1,240 @@
+<?php
+namespace {{ namespace }};
+
+use Illuminate\Validation\Rule;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
+use Illuminate\Support\Collection;
+use Illuminate\Contracts\View\View;
+use Sosupp\SlimDashboard\Html\HtmlForm;
+use Sosupp\SlimDashboard\Html\ListCard;
+use Sosupp\SlimDashboard\Html\PageCtas;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimDashboard\Html\Tables\Rows;
+use Sosupp\SlimDashboard\Html\Tables\Columns;
+use Sosupp\SlimerTenancy\Models\Landlord\Plan;
+
+use Sosupp\SlimDashboard\ValueObjects\CardEdit;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Livewire\Tables\BaseTable;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+use Sosupp\SlimerTenancy\Services\Landlord\PackagesCrudService;
+
+
+class PackagesList extends BaseTable
+{
+    use StatusToggleable , HasModalPanel, HandlesImageUploads ;
+
+
+    public $selectedModelId;
+    public $name;
+    public $price;
+    public $description;
+    public $status;
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+
+
+    public function mount()
+    {
+        $this->subnav = 'Packages';
+        $this->pageTitle = 'Packages';
+        $this->status = 'active';
+    }
+
+    public function useModel()
+    {
+        return Plan::class;
+    }
+
+    public function useCustomTable() { }
+
+    public function tableCols()
+    {
+        return Columns::make()
+        ->column(name: 'name', label: 'name')
+        ->build();
+    }
+
+    #[Computed]
+    public function tableRecords()
+    {
+        return (new PackagesCrudService)
+        ->search(term: $this->search)
+        ->withTrashed()
+        ->orderBy(direction: 'desc')
+        ->paginate(limit: $this->recordPerPage);
+    }
+
+    public function tableActions()
+    {
+        return Rows::action(name: 'manage', link: '')
+        ->action(name: 'edit', link: '')
+        ->action(name: 'delete', link: '')
+        ->make();
+    }
+
+    public function pageCta()
+    {
+        return PageCtas::cta(
+            type: 'link', label: 'Add', route: null,
+             withSidePanel: true, component: 'makeForm',
+        )
+        ->make();
+    }
+
+    public function defineSearch() { }
+
+    public function showPagination()
+    {
+        return true;
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'Packages', url: '', isBase: false, isCurrent: true)
+        ->make();
+    }
+
+    // Mobile listings
+    public function hasCardListing()
+    {
+        return true;
+    }
+
+    public function cardContents()
+    {
+        return ListCard::content()
+        ->row(name: 'id', label: '#', key: 'id')
+        ->make();
+    }
+
+    public function withListCardEdit($record): CardEdit|Collection|false
+    {
+        return false;
+        return (new CardEdit(
+            title: 'EDIT: ',
+            form: ''
+        ));
+    }
+
+    public function mobileEditImageName($record): string
+    {
+        return '';
+    }
+
+    public function withCardModalData($record): Collection
+    {
+        return collect([
+            'title' => '',
+            'image' => '',
+            'edit' => '',
+        ]);
+    }
+
+    public function withCardModalView(): string|View
+    {
+        return <<<HTML
+            <div class="card-item-modal-details">
+                <p><b>Item Count: </b><span x-text="cardItem[1]"></span></p>
+                <p><b>Order Date: </b><span x-text="cardItem[2]"></span></p>
+                <p><b>Delivery Method: </b><span x-text="cardItem[3]"></span></p>
+                <p><b>Current Status: </b><span x-text="cardItem[4]"></span></p>
+            </div>
+
+            <div class="card-item-modal-ctas">
+                <button type="button" class="cta-btn card-item-modal-cta as-pointer"
+                    >Preview</button>
+            </div>
+        HTML;
+    }
+
+    public function withListCardImage(): string|View
+    {
+        // return 'editable' to make image uploadable inline
+        return '';
+    }
+
+
+    // Inline form CRUD
+    public function sidePanelModel($id)
+    {
+        // Below is the selected model to use
+        $this->selectedModelId = $id; // You can change property name
+        $model = $this->tableRecords->where('id', $id)->first();
+
+        $this->name = $model->name;
+        $this->price = $model->price;
+        $this->description = $model->description;
+        $this->status = $model->status;
+
+        // More code here
+
+    }
+
+    public function panelExtraView(): string|View
+    {
+        return HtmlForm::make()
+        ->specialInput()
+        ->input(name: 'name', label: 'Name')
+        ->input(name: 'price', label: 'Price')
+        ->input(name: 'description', label: 'description')
+        ->select(
+            name: 'status', label: 'status',
+            options: [
+                'active',
+                'inactive'
+            ]
+        )
+        ->button(label: 'save')
+        ->build();
+    }
+
+    public function save()
+    {
+        $validated = $this->validate(
+            rules: [
+                'name' => [
+                    'required',
+                    'string',
+                    Rule::unique('plans', 'name')->ignore($this->selectedModelId),
+                ],
+                'price' => ['required', 'numeric'],
+                'description' => ['nullable', 'string'],
+                'status' => ['required', 'string', 'max:8']
+            ]
+        );
+
+        // dd($validated);
+
+        $result = (new PackagesCrudService)->make(
+            id: $this->selectedModelId,
+            data: $validated,
+        );
+
+        if($result){
+            $this->reset('selectedModelId');
+
+            $this->successAlert(message: 'Record action successful...');
+        }
+    }
+
+    public function makeForm()
+    {
+        // Reset properties that are needed
+        $this->reset('selectedModelId');
+        return $this->panelExtraView();
+    }
+
+    public function updateForm()
+    {
+
+        return $this->panelExtraView();
+    }
+
+
+}

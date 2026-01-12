@@ -1,0 +1,67 @@
+<?php
+
+namespace {{ namespace }};
+
+use Livewire\Attributes\Layout;
+use Sosupp\SlimDashboard\Html\Tabs;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
+use Sosupp\SlimDashboard\Livewire\Tabs\TabWrapper;
+
+
+class TenantManage extends TabWrapper
+{
+
+    public ?Tenant $tenant  = null;
+
+    public function withMount()
+    {
+
+    }
+
+    public function pageTitle()
+    {
+        return 'Manage Vendor';
+    }
+
+    public function tabHeadings()
+    {
+        return Tabs::content(
+            heading: 'Overview', component: 'landlord.vendor-overview', route: '',
+            key: 'tenant-overview'
+        )
+        ->content(
+            heading: 'Settings', component: 'landlord.vendor-setting', route: '',
+            key: 'tenant-settings'
+        )
+        ->content(
+            heading: 'Utilities', component: '', route: '', key: 'tenant-utilities'
+        )
+
+        ->make();
+    }
+
+    public function viewBeforeTabs()
+    {
+        return '';
+    }
+
+    public function passExtraData(): array
+    {
+        return [
+            'tenant' => $this->tenant,
+        ];
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(
+            name: 'Vendors', url: route('landlord.tenants.index'), isBase: true,
+        )
+        ->nav(
+            name: $this->tenant ? $this->tenant->name : 'Manage',
+            isCurrent: true,
+        )
+        ->make();
+    }
+}

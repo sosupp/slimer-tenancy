@@ -1,0 +1,493 @@
+<?php
+namespace {{ namespace }};
+
+use Illuminate\Validation\Rule;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Artisan;
+use Sosupp\SlimDashboard\Html\HtmlForm;
+use Sosupp\SlimDashboard\Html\ListCard;
+use Sosupp\SlimDashboard\Html\PageCtas;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimDashboard\Html\PageFilter;
+use Sosupp\SlimDashboard\Html\Tables\Rows;
+use Sosupp\SlimDashboard\Html\Tables\Columns;
+use Sosupp\SlimDashboard\ValueObjects\CardEdit;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
+use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Livewire\Tables\BaseTable;
+use Sosupp\SlimDashboard\Concerns\Filters\WithDateFilters;
+use Sosupp\SlimerTenancy\Services\Tenant\TenantCrudService;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+
+
+class TenantList extends BaseTable
+{
+    use StatusToggleable, HasModalPanel,
+        WithDateFilters, HandlesImageUploads;
+
+
+    public $selectedModelId;
+
+    public ?Tenant $tenant = null;
+
+    public $businessName;
+    public $shortName;
+    public $owner;
+    public $email;
+    public $phone;
+
+    public $commandOutput;
+
+    public $package;
+    public $amount;
+    public $quantity;
+    public $paymentMethod;
+    public $deployed;
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+
+
+    public function mount()
+    {
+        $this->subnav = 'SUSU Vendors';
+
+        $this->pageTitle = 'Vendors';
+        $this->selectedDate = 'this year';
+        $this->dateLabel = 'this year';
+
+    }
+
+    public function useModel()
+    {
+        return Tenant::class;
+    }
+
+    public function useCustomTable() { }
+
+    public function tableCols()
+    {
+        return Columns::make()
+        ->column(name: 'name', label: 'name')
+        ->column(name: 'owner', label: 'owner')
+        ->column(name: 'email', label: 'email')
+        ->column(name: 'phone', label: 'phone')
+        ->column(name: 'status', label: 'status', type: 'toggle')
+        ->column(name: 'created_at', label: 'created')
+        ->column(name: 'name', label: 'staff', relation: 'admin')
+        ->build();
+    }
+
+    #[Computed]
+    public function tableRecords()
+    {
+        return ((new TenantCrudService)
+        ->search(term: $this->search)
+        ->withTrashed()
+        ->forDate(date: $this->selectedDate)
+        ->orderBy(direction: 'desc')
+        ->paginate(limit: $this->recordPerPage));
+    }
+
+    public function tableActions()
+    {
+        return Rows::action(
+            name: 'manage', link: 'landlord.vendors.manage'
+        )
+        ->action(
+            name: 'edit', link: '', sidePanel: true,
+            panelHeading: 'EDIT VENDOR', component: 'updateForm'
+        )
+        // ->action(name: 'delete', link: '')
+        ->action(
+            name: 'deploy', link: 'button', wireAction: 'deployVendor',
+            isVisible: fn($record) => $record ? $record->is_deployed === false : true,
+            css: 'deployer-btn'
+        )
+        ->action(
+            name: 'buy sms', link: 'button', sidePanel: true,
+            component: 'smsForm', panelHeading: 'ADD SMS CREDIT'
+        )
+        ->make();
+    }
+
+    public function pageCta()
+    {
+        return PageCtas::cta(
+            type: 'link', label: 'Add', route: null,
+             withSidePanel: true, component: 'makeForm',
+        )
+        ->make();
+    }
+
+    public function pageFilters()
+    {
+        return PageFilter::filter(
+            type: 'dropdown',
+            label: 'Date',
+            id: 'filterDates',
+            options: $this->dateFilterOptions()->toArray(),
+            optionKey: 'name',
+            optionId: 'name',
+            wireAction: 'selectedCustomDateFilter'
+        )->make();
+    }
+
+    public function defineSearch() { }
+
+    public function showPagination()
+    {
+        return true;
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'SUSU Vendors', url: '', isBase: false, isCurrent: true)
+        ->make();
+    }
+
+    // Mobile listings
+    public function hasCardListing()
+    {
+        return true;
+    }
+
+    public function mobileModalCta(): bool
+    {
+        return true;
+    }
+
+    public function cardContents()
+    {
+        return ListCard::content()
+        ->row(name: 'name', label: null, key: 'name')
+        ->row(
+            name: 'subdomain', label: 'short name', key: 'short_name',
+            labelCss: 'text-bold'
+        )
+        ->row(
+            name: 'status', label: 'status', key: 'status',
+            labelCss: 'text-bold'
+        )
+        ->row(
+            name: 'created_at', label: 'created on', key: 'created_at',
+            valueCss: 'dim-text'
+        )
+        ->make();
+    }
+
+    public function withListCardEdit($record): CardEdit|Collection|false
+    {
+        return false;
+        return (new CardEdit(
+            title: 'EDIT: ',
+            form: ''
+        ));
+    }
+
+    public function mobileEditImageName($record): string
+    {
+        return '';
+    }
+
+    public function withCardModalData($record): Collection
+    {
+        // dd($record->admin);
+        return collect([
+            'title' => $record->name,
+            'date' => euroDate($record->created_at),
+            'staff' => $record->admin?->name,
+            'plan' => $record->plan?->name,
+        ]);
+    }
+
+    public function withCardModalView(): string|View
+    {
+        return <<<HTML
+            <div class="card-item-modal-details">
+                <p><b>Dated: </b><span x-text="cardItem.date"></span></p>
+                <p><b>Staff: </b><span x-text="cardItem.staff"></span></p>
+                <p><b>Plan: </b><span x-text="cardItem.plan"></span></p>
+            </div>
+        HTML;
+    }
+
+    public function withListCardImage(): string|View
+    {
+        // return 'editable' to make image uploadable inline
+        return '';
+    }
+
+
+    // Inline form CRUD
+    public function sidePanelModel($id)
+    {
+        // Below is the selected model to use
+        $this->selectedModelId = $id; // You can change property name
+        $model = $this->tableRecords->where('id', $id)->first();
+
+        // dd($model);
+        // More code here
+        $this->businessName = $model->name;
+        $this->shortName = $model->subdomain;
+        $this->owner = $model->owner;
+        $this->email = $model->email;
+        $this->phone = $model->phone;
+        $this->deployed = $model->is_deployed;
+
+    }
+
+    public function panelExtraView(): string|View
+    {
+        return HtmlForm::make()
+        ->specialInput()
+        ->input(name: 'businessName', label: 'Business Name', placeholder: 'eg. 2plus2 SUSU Enterprise')
+        ->input(name: 'shortName', label: 'Short name (eg. 2plus2)')
+        ->input(name: 'owner', label: 'Owner name')
+        ->input(name: 'email', label: 'Email')
+        ->input(name: 'phone', label: 'Mobile number')
+        ->button(label: 'save')
+        ->build();
+    }
+
+    public function save()
+    {
+        // dd($this->businessName);
+        $validated = $this->validate(
+            rules: [
+                'businessName' => ['required', 'min:3'],
+                'shortName' => [
+                    'required', 'min:3',
+                    Rule::unique('tenants', 'subdomain')
+                    ->ignore($this->selectedModelId)
+                ],
+                'owner' => ['string', 'nullable'],
+                'email' => ['required', 'nullable'],
+                'phone' => ['required']
+            ]
+        );
+
+
+        // $useShortName = str_replace(' ', '', $this->shortName);
+
+        $useShortName = cleanName($this->shortName);
+        // dd($validated, $useShortName, $this->deployed);
+
+        $schema = 'tenant_'.str($useShortName)->slug('_');
+        $validated['schema'] = $schema;
+        $validated['domain'] = $useShortName.'.'.config('slimertenancy.root.domain');
+        $validated['subdomain'] = $useShortName;
+        $validated['name'] = $this->businessName;
+        $validated['deployed'] = $this->deployed;
+        // dd($validated, $schema, str_replace(' ', '', $useShortName));
+
+        $result = (new TenantCrudService)->make(
+            id: $this->selectedModelId,
+            data: $validated,
+        );
+
+
+
+        if(!$this->selectedModelId && $result){
+            $tenantDB = DB::statement("CREATE SCHEMA IF NOT EXISTS {$schema}");
+
+            // dd($tenantDB);
+
+            $this->reset('selectedModelId', 'businessName', 'shortName', 'owner', 'email', 'phone');
+            if($tenantDB){
+                $this->successAlert(message: 'Record action successful...');
+                $this->dispatch('opensidepanel');
+                return;
+            }
+
+            $this->dispatch('opensidepanel');
+            $this->failAlert(message: 'DB was not created for Client');
+            return;
+
+        }
+
+        if($result){
+            $this->reset(
+                'selectedModelId', 'businessName', 'shortName',
+                'owner', 'email', 'phone'
+            );
+            $this->successAlert(message: 'Record action successful...');
+            $this->dispatch('opensidepanel');
+            return;
+        }
+
+        $this->failAlert(message: 'Action not completed...Something went wrong');
+    }
+
+    public function makeForm()
+    {
+        // Reset properties that are needed
+        $this->reset(
+            'selectedModelId', 'businessName', 'shortName',
+            'owner', 'email', 'phone'
+        );
+        return $this->panelExtraView();
+    }
+
+    public function updateForm()
+    {
+        return $this->panelExtraView();
+    }
+
+    public function deployVendor($tenant)
+    {
+        // dd($tenant, str($tenant['owner'])->explode(' ')->toArray());
+        $result = null;
+
+        $this->tenant = Tenant::find($tenant['id']);
+
+        // sleep(5);
+
+        // dd($this->tenant, $tenant, $this->tenant->is_deployed === false);
+        // return;
+        if($tenant && $this->tenant->is_deployed === false){
+            $tenantDB = DB::statement("CREATE SCHEMA IF NOT EXISTS {$tenant['schema']}");
+            // dd("tenant", $tenant, $tenant['schema'], DB::connection());
+            config([
+                'database.connections.tenant.schema' => $tenant['schema'],
+                'database.connections.tenant.search_path' => $tenant['schema'] . ',public',
+            ]);
+
+            // Change the default database connection
+            config(['database.default' => 'tenant']);
+
+            DB::purge('tenant');
+            // DB::purge('tenant');
+            DB::reconnect('tenant');
+
+
+            // dd(DB::connection());
+
+            $owner = str($tenant['owner'])->explode(' ')->toArray();
+
+            // $result = Artisan::queue(
+            //     command: 'app:tenant-setup',
+            //     parameters: [
+            //         'tenant' => $tenant['id'],
+            //         'owner' => [
+            //             'firstName' => $owner[0],
+            //             'lastName' => $owner[1] ?? $owner[0],
+            //             'mobile' => $tenant['phone'],
+            //             'email' => $tenant['email'],
+            //         ]
+            //     ]
+            // );
+
+            if (!defined('STDIN')) {
+                define('STDIN', fopen('php://stdin', 'r'));
+            }
+
+            // $output = new BufferedOutput();
+            $output = null;
+
+            $result = Artisan::call(
+                command: 'app:tenant-migrate',
+                parameters: [
+                    '--refresh' => true,
+                    '--tenant' => $tenant['id'],
+                    '--owner' => [
+                        'firstName' => $owner[0],
+                        'lastName' => $owner[1] ?? $owner[0],
+                        'mobile' => $tenant['phone'],
+                        'email' => $tenant['email'],
+                    ]
+                    ],
+                    outputBuffer: $output
+            );
+
+            // $this->commandOutput = $output->fetch();
+
+            // Log::info('deploy', ['result' => $result]);
+            if($result == 0){
+
+                // dd("yes");
+                $this->tenant->update(['is_deployed' => true]);
+                $this->tenant = null;
+
+                // Reset the database connection
+                config(['database.default' => 'pgsql']);
+
+                DB::purge('tenant');
+                DB::reconnect('pgsql');
+                $this->successAlert(message: 'Vendor deployed successfully...');
+
+
+            }
+
+            return;
+        }
+
+        $this->errorAlert(message: 'Vendor already deployed...');
+
+
+    }
+
+    public function viewBeforeTable()
+    {
+        return '';
+        return <<<HTML
+        <pre class="mt-4 bg-gray-100 p-3 rounded">
+            $this->commandOutput
+        </pre>
+        HTML;
+    }
+
+    public function smsForm()
+    {
+        return HtmlForm::make()
+        ->specialInput()
+        ->select(
+            name: 'package', label: 'Package',
+            options: [
+            //     (
+            //     SmsPackage::query()
+            //     ->get()
+            //     ->map(function($package){
+            //         return [
+            //             'id' => $package->id,
+            //             'name' => 'GHc '. $package->amount,
+            //         ];
+            //     });
+
+            // )
+            ]
+        )
+        ->select(
+            name: 'paymentMethod', label: 'Payment Method',
+            options: [
+                'manual',
+                'momo',
+                'bank',
+            ]
+        )
+        ->input(
+            name: 'amount', label: 'Amount'
+        )
+        ->input(
+            name: 'quantity', label: 'Quantity',
+        )
+        ->button(
+            label: 'Process', defaultSave: 'processSms'
+        )
+        ->build();
+    }
+
+    public function processSms()
+    {
+        dd($this->selectedModelId, $this->paymentMethod, $this->package, $this->amount, $this->quantity);
+    }
+
+
+}

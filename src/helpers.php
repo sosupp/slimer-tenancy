@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Str;
+
 if(!function_exists('rootDomain')){
     function rootDomain()
     {
@@ -17,5 +19,14 @@ if(!function_exists('isLandlord')){
         }
 
         return true;
+    }
+}
+
+
+if (!function_exists('cleanName')) {
+    function cleanName(string $name): string
+    {
+        $cleaned = preg_replace('/[^a-zA-Z0-9]/', '', $name);
+        return Str::lower($cleaned);
     }
 }
