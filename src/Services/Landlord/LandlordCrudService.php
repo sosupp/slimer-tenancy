@@ -3,7 +3,6 @@ namespace Sosupp\SlimerTenancy\Services\Landlord;
 
 use Illuminate\Support\Facades\Hash;
 use Sosupp\SlimDashboard\Contracts\Crudable;
-use Sosupp\SlimerTenancy\Models\Landlord\Landlord;
 use Sosupp\SlimDashboard\Concerns\GeneratePassword;
 use Sosupp\SlimDashboard\Concerns\Filters\CommonFilters;
 use Sosupp\SlimDashboard\Concerns\Filters\WithDateFormat;
@@ -12,6 +11,13 @@ use Sosupp\SlimerTenancy\Events\Landlord\LandlordCreated;
 class LandlordCrudService implements Crudable
 {
     use CommonFilters, WithDateFormat, GeneratePassword;
+
+    protected $landlordAdmin;
+
+    public function __construct()
+    {
+        $this->landlordAdmin = config('slimertenancy.landlord.model');
+    }
 
     public function make(?int $id, array $data, $testUser = false)
     {
@@ -38,7 +44,7 @@ class LandlordCrudService implements Crudable
 
         $useColumns = $standardCols + $addColumn;
 
-        $admin = Landlord::query()
+        $admin = $this->landlordAdmin::query()
         ->updateOrCreate(
             ['email' => $data['email']],
             $id == null ? $useColumns : $standardCols
@@ -59,7 +65,7 @@ class LandlordCrudService implements Crudable
 
     public function one(int|string $id)
     {
-        return Landlord::query()
+        return $this->landlordAdmin::query()
         ->where('id', $id)
         ->status(status: $this->status)
         ->first();
@@ -67,7 +73,7 @@ class LandlordCrudService implements Crudable
 
     public function list(int|null $limit = 12, array $cols = ['*'])
     {
-        return Landlord::query()
+        return $this->landlordAdmin::query()
         ->when($this->withTrashed, function($query){
             $query->withTrashed();
         })
@@ -82,7 +88,7 @@ class LandlordCrudService implements Crudable
 
     public function paginate(int|null $limit = 12, array $cols = ['*'])
     {
-        return Landlord::query()
+        return $this->landlordAdmin::query()
         ->when($this->withTrashed, function($query){
             $query->withTrashed();
         })

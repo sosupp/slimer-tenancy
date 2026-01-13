@@ -10,7 +10,7 @@ return [
 
     'landlord' => [
         'domain' => env('SLIMER_TENANCY_LANDLORD_DOMAIN', 'manage.susu-crm.test'),
-        'model' => Sosupp\SlimerTenancy\Models\Landlord\Landlord::class,
+        'model' => Sosupp\SlimerTenancy\Models\Landlord\Admin::class,
         'connection' => env('SLIMER_LANDLORD_CONNECTION', 'pgsql'),
         'jwt' => env('SLIMER_TENANCY_JWT', null),
 

@@ -17,6 +17,8 @@ return new class extends Migration
         Schema::connection('pgsql')->create('landlord.tenants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('country_id')->nullable();
+            $table->foreignId('admin_id')->nullable();
+            $table->foreignId('plan_id')->nullable();
             $table->string('name');
             $table->string('slug')->unique(); // or subdomain
             $table->string('key')->nullable()->unique();
@@ -29,6 +31,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('status')->default('active');
+            $table->unsignedBigInteger('sms')->default(100);
             $table->boolean('is_deployed')->default(false);
             $table->timestamp('disabled_at')->nullable();
             $table->softDeletes();

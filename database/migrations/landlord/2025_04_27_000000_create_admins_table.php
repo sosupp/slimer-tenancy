@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::create('landlords', function (Blueprint $table) {
+        Schema::create('admins', function (Blueprint $table) {
             $table->id();
             $table->foreignId('role_id')->nullable();
             $table->string('name');
@@ -26,7 +26,7 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-        Schema::create('landlords_password_reset_tokens', function (Blueprint $table) {
+        Schema::create('admins_password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
@@ -35,7 +35,7 @@ return new class extends Migration {
 
     public function down()
     {
-        Schema::dropIfExists('landlords');
-        Schema::dropIfExists('landlords_password_reset_tokens');
+        Schema::dropIfExists('admins');
+        Schema::dropIfExists('admins_password_reset_tokens');
     }
 };
