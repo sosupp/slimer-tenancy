@@ -38,7 +38,7 @@ class SlimerTenancyServiceProvider extends ServiceProvider
             ], 'slimer-tenancy-config');
 
             $this->publishes([
-                __DIR__.'/../database/migrations' => database_path('migrations/landlord'),
+                __DIR__.'/../database/migrations' => database_path('migrations'),
             ], 'slimer-landlord-migrations');
 
             // Commands
