@@ -15,7 +15,7 @@ class Admin extends Authenticatable
         SoftDeletes, CommonScopes;
 
     protected $connection = 'pgsql';   // <— IMPORTANT
-    protected $table = 'landlord.landlords';
+    protected $table = 'landlord.admins';
 
     protected $fillable = [
         'role_id', 'name', 'email', 'phone',
