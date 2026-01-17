@@ -32,7 +32,7 @@
     "php": "^8.0|^8.1|^8.2|^8.3",
     "illuminate/support": "*",
     "laravel/sanctum": "^4.2",
-    "sosupp/slim-dashboard": "^1.37",
+    "sosupp/slim-dashboard": "^2.0",
     "spatie/laravel-permission": "^6.23"
   },
   "require-dev": {
