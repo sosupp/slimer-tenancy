@@ -14,7 +14,7 @@ class Plan extends Model
 
     protected $fillable = [
         'name', 'description', 'price', 'status', 'features',
-        'admin_id'
+        'adminable_id', 'adminable_type',
     ];
 
     protected $casts = [
