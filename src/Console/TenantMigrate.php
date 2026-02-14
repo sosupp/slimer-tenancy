@@ -4,9 +4,6 @@ namespace Sosupp\SlimerTenancy\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
-use App\Services\Access\RolesCrudService;
-use App\Services\Employees\UserCrudService;
-use App\Services\Employees\EmployeeCrudService;
 use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
 use Sosupp\SlimerTenancy\Services\Tenant\TenantManagerService;
 
@@ -47,73 +44,42 @@ class TenantMigrate extends Command
             $manager->setTenant($tenant);
 
             $params = [
-                '--path' => 'database/migrations',
+                '--path' => 'database/migrations/tenant',
                 '--database' => 'tenant',
+                '--force' => true,
             ];
 
             if ($this->option('fresh')) {
-                Artisan::call('migrate:fresh', $params + [
-                    '--force' => true,
-                ]);
+                Artisan::call('migrate:fresh', $params);
+                $this->onFirstRun($tenantId, $owner);
+
             } elseif ($this->option('refresh')) {
-                Artisan::call('migrate:refresh', $params + [
-                    '--force' => true,
-                ]);
+                Artisan::call('migrate:refresh', $params);
+                $this->onFirstRun($tenantId, $owner);
             } else {
-                Artisan::call('migrate', $params + [
-                    '--force' => true,
-                ]);
+                Artisan::call('migrate', $params);
             }
-
-            // if ($this->option('seed')) {
-            //     Artisan::call('db:seed', [
-            //         '--class' => 'TenantDatabaseSeeder',
-            //         '--database' => 'tenant',
-            //         '--force' => true,
-            //     ]);
-            // }
-
-            // Add master user or owner
-            $this->call('business:roles');
-            $role = (new RolesCrudService)->one(id: 1, name: 'owner');
-
-            // dd($role);
-
-            $user = (new UserCrudService)->make(
-                id: null,
-                data: [
-                    'firstName' => $owner['firstName'],
-                    'lastName' => $owner['lastName'],
-                    'mobileNumber' => $owner['mobile'],
-                    'email' => $owner['email'],
-                    'role' => $role->id,
-                    'type' => 'owner',
-                ],
-            );
-
-            $employee = (new EmployeeCrudService)->make(
-                id: null,
-                data: [
-                    'userId' => $user->id,
-                    'firstName' => $owner['firstName'],
-                    'lastName' => $owner['lastName'],
-                    'mobileNumber' => $owner['mobile'],
-                ],
-            );
-
-            $this->call('app:seed-regions');
-            $this->call('business:add-setting');
-            $this->call('business:expense-type');
-            $this->call('app:add-income-type');
-            $this->call('app:add-banking-type');
-            $this->call('app:add-investment-type');
-            $this->call('app:add-account-type');
-            $this->call('app:add-account-mode');
-
 
             $this->line(Artisan::output());
         }
 
         $this->info('Done.');
+    }
+
+    private function onFirstRun($tenantId, $owner)
+    {
+        // Pass in dynamic commands that will be called to seed default data if needed
+            // after database is migrated
+
+            $commands = config('slimetenancy.tenant.commands_after_migration');
+
+            if($commands){
+                foreach($commands as $command){
+                    $this->call($command, [
+                        '--tenant' => $tenantId,
+                        '--owner' => $owner,
+                    ]);
+                }
+            }
     }
 }

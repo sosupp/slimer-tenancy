@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 if(!function_exists('rootDomain')){
@@ -28,5 +29,15 @@ if (!function_exists('cleanName')) {
     {
         $cleaned = preg_replace('/[^a-zA-Z0-9]/', '', $name);
         return Str::lower($cleaned);
+    }
+}
+
+if (!function_exists('tenantPrefix')) {
+    function tenantPrefix()
+    {
+        $tenantId = app()->has('tenantId') ? app('tenantId') .'_' : '';
+
+        Log::info('tenant_id', [$tenantId]);
+        return $tenantId;
     }
 }

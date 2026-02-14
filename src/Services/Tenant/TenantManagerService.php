@@ -18,6 +18,9 @@ class TenantManagerService
             'database.connections.tenant.search_path' => $tenant->schema . ',public',
         ]);
 
+        // Change the default database connection
+        config(['database.default' => 'tenant']);
+
         DB::purge('pgsql');
         DB::purge('tenant');
         DB::reconnect('tenant');

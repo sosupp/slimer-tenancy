@@ -30,6 +30,7 @@ class TenantCrudService implements Crudable
                 'phone' => $data['phone'] ?? null,
                 'status' => $data['status'] ?? 'active',
                 'disabled_at' => $data['disabledDate'] ?? null,
+                'is_deployed' => false,
             ]
         );
     }
