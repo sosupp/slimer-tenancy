@@ -8,6 +8,8 @@ return [
         'domain' => env('SLIMER_TENANCY_ROOT_DOMAIN'),
     ],
 
+    'jwt' => env('SLIMER_TENANCY_JWT', null),
+    
     'landlord' => [
         'domain' => env('SLIMER_TENANCY_LANDLORD_DOMAIN'),
         'model' => Sosupp\SlimerTenancy\Models\Landlord\Admin::class,

@@ -24,8 +24,6 @@ class TenantResolverService
 
             $host = $request->getHost();
 
-
-
             // 1) Subdomain (acme.yourapp.com)
             $parts = explode('.', $host);
             $sub = $parts[0] ?? null;
