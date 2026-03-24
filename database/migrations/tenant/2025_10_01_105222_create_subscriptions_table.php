@@ -29,6 +29,13 @@ return new class extends Migration
             $table->timestamp('payment_date')->nullable();
             $table->timestamp('start_date')->default(now());
             $table->timestamp('end_date')->nullable();
+
+            $table->uuid('uid')->nullable();
+            $table->string('channel')->nullable();
+            $table->enum('synced', ['yes', 'no'])
+            ->default('no');
+
+            $table->softDeletes();
             $table->timestamps();
         });
     }

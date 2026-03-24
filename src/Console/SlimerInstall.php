@@ -73,7 +73,7 @@ class SlimerInstall extends Command
                 'SLIMER_TENANCY_ENABLED'       => 'false',
                 'SLIMER_TENANCY_ROOT_DOMAIN'   => $domain,
                 'SLIMER_TENANCY_LANDLORD_DOMAIN' => 'manage.'.$domain.'.test',
-                'SLIMER_TENANCY_TENANT_DOMAIN' => 'null',
+                'SLIMER_TENANCY_TENANT_DOMAIN' => rootDomain(),
             ];
         }
 
