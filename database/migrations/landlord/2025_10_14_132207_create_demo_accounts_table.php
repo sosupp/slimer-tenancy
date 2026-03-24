@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('user_agent')->nullable();
             $table->string('country')->nullable();
             $table->string('city')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

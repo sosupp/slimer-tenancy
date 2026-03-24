@@ -41,3 +41,10 @@ if (!function_exists('tenantPrefix')) {
         return $tenantId;
     }
 }
+
+if (!function_exists('tenantUrl')) {
+    function tenantUrl(string $shortName): string|null
+    {
+        return $shortName.'.'.rootDomain();
+    }
+}

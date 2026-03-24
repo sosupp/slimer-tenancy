@@ -37,7 +37,7 @@
   },
   "require-dev": {
     "orchestra/testbench": "^10.4",
-    "phpunit/phpunit": "^12.3"
+    "phpunit/phpunit": " "
   },
   "scripts": {
     "test": "vendor/bin/phpunit",

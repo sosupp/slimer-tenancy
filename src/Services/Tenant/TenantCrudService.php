@@ -15,9 +15,10 @@ class TenantCrudService implements Crudable
         return Tenant::query()
         ->updateOrCreate(
             [
-                'name' => $data['name']
+                'key' => $data['subdomain']
             ],
             [
+                'name' => $data['name'],
                 'slug' => str($data['name'])->slug(),
                 'key' => $data['subdomain'] ?? null,
                 'subdomain' => $data['subdomain'] ?? null,
