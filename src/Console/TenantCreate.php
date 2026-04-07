@@ -2,10 +2,10 @@
 
 namespace Sosupp\SlimerTenancy\Console;
 
-use App\Models\Tenant;
-use Illuminate\Support\Str;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Sosupp\SlimerTenancy\Models\Landlord\Tenant;
 
 class TenantCreate extends Command
 {
@@ -53,7 +53,7 @@ class TenantCreate extends Command
             ]
         );
 
-        $this->call('app:tenant-migrate', [
+        $this->call('slimer:tenant-migrate', [
             '--tenant' => $tenant->id,
             '--refresh' => true,
             '--owner' => [

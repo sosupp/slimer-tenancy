@@ -45,9 +45,10 @@ class SlimerTenancyServiceProvider extends ServiceProvider
                 __DIR__ .'/../routes/landlord.php' => base_path('routes/landlord.php')
             ], 'slimer-landlord-routes');
 
-            // Commands
-            $this->customCommands();
         }
+
+        // Commands
+        $this->customCommands();
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'slimer-tenancy');
     }
