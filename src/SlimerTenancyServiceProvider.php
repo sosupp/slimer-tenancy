@@ -114,6 +114,8 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     protected function loadTenantRoutes()
     {
         if($this->app->booted(function(){
+            $this->loadRoutesFrom(__DIR__.'/../routes/tenants.php');
+
             Route::middleware(['web'])
             ->group(base_path('routes/tenant.php'));
         }));
