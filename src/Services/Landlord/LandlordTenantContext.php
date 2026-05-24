@@ -25,6 +25,7 @@ class LandlordTenantContext
         ]);
 
         App::instance('tenantId', $tenant->id);
+        App::instance('tenant', $tenant);
 
         DB::purge();
         DB::reconnect();
@@ -39,6 +40,7 @@ class LandlordTenantContext
             ]);
 
             App::instance('tenantId', null);
+            App::instance('tenant', null);
 
             DB::purge();
             DB::reconnect();

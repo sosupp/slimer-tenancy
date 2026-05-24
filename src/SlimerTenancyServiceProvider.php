@@ -44,6 +44,8 @@ class SlimerTenancyServiceProvider extends ServiceProvider
             // Commands
             $this->customCommands();
         }
+        
+        // $this->loadRoutesFrom(__DIR__.'/../routes/tenant.php');
     }
 
     protected function decideConnection()

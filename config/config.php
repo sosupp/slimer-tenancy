@@ -32,4 +32,8 @@ return [
         ]
     ],
 
+    'models' => [
+        'utility' => Sosupp\SlimerTenancy\Models\Tenant\TenantUtility::class,
+    ]
+
 ];
