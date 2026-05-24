@@ -11,7 +11,7 @@ class SlimerInstall extends Command
      *
      * @var string
      */
-    protected $signature = 'slimer:install
+    protected $signature = 'slimer:tenancy-install
                             {--m|migrate : Automatically run landlord migrations after publishing}';
 
     /**
@@ -28,9 +28,17 @@ class SlimerInstall extends Command
     {
         $this->info("🚀 Starting Slimer Tenancy setup...");
 
+        // dd(str(env('APP_NAME'))->camel()->lower()->value());
+
         $this->publishAssets();
-        $this->runMigrations();
         $this->updateEnv();
+        $this->call('slimer:landlord-install');
+        $this->call('slimer:landlord-migrate');
+        $this->call('slimer:landlord-admin');
+
+        $this->updateEnv([
+            'SLIMER_TENANCY_ENABLED' => 'true',
+        ]);
 
         $this->info("✅ Slimer Tenancy installation complete.");
 
@@ -52,18 +60,22 @@ class SlimerInstall extends Command
         ]);
     }
 
-    private function updateEnv(): void
+    private function updateEnv(array $data = []): void
     {
         $this->line("📝 Updating .env file...");
 
-        $domain = str(env('APP_NAME'))->lower()->value();
+        $domain = str(env('APP_NAME'))->camel()->lower()->value();
 
-        $updates = [
-            'SLIMER_TENANCY_ENABLED'       => 'true',
-            'SLIMER_TENANCY_ROOT_DOMAIN'   => $domain,
-            'SLIMER_TENANCY_LANDLORD_DOMAIN' => 'manage.'.$domain.'.test',
-            'SLIMER_TENANCY_TENANT_DOMAIN' => 'null',
-        ];
+        $updates = $data;
+
+        if(empty($data)){
+            $updates = [
+                'SLIMER_TENANCY_ENABLED'       => 'false',
+                'SLIMER_TENANCY_ROOT_DOMAIN'   => $domain,
+                'SLIMER_TENANCY_LANDLORD_DOMAIN' => 'manage.'.$domain.'.test',
+                'SLIMER_TENANCY_TENANT_DOMAIN' => rootDomain(),
+            ];
+        }
 
         $envPath = base_path('.env');
 
@@ -95,7 +107,7 @@ class SlimerInstall extends Command
         $this->info("🔧 Environment variables updated.");
     }
 
-    private function runMigrations(): void
+    private function runLandlordMigrations(): void
     {
         if ($this->option('migrate')) {
             $this->line("🛠  Running landlord migrations...");

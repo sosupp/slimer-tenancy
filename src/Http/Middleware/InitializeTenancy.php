@@ -29,7 +29,7 @@ class InitializeTenancy
 
         // dd($tenant);
         if (!$tenant) {
-            $root = config('slimer.tenancy.root_domain');
+            $root = config('slimertenancy.root.domain');
             if ($request->getHost() === $root || $request->getHost() === 'www.'.$root) {
                 return $next($request);
             }
@@ -49,6 +49,6 @@ class InitializeTenancy
     private function getMainDomain(): string
     {
         // Get the app domain from config or env
-        return config('app.root_domain', parse_url(config('app.url'), PHP_URL_HOST));
+        return config('slimertenancy.root.domain', parse_url(config('app.url'), PHP_URL_HOST));
     }
 }

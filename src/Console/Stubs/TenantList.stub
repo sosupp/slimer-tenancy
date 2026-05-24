@@ -99,7 +99,7 @@ class TenantList extends BaseTable
     public function tableActions()
     {
         return Rows::action(
-            name: 'manage', link: 'landlord.vendors.manage'
+            name: 'manage', link: 'landlord.tenants.manage'
         )
         ->action(
             name: 'edit', link: '', sidePanel: true,

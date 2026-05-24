@@ -47,7 +47,7 @@ trait TenantAwareCommand
             } else {
                 $this->info("🌍 Running for all tenants...");
 
-                if($this->confirm('You are about to run for all tenants?')){
+                if($this->confirm('You are about to run for all tenants?', true)){
                     $tenants = $useTenant::all();
                     foreach ($tenants as $tenant) {
                         $this->info("🔹 Switching to tenant: {$tenant->name}");

@@ -10,8 +10,7 @@ class LandlordAuthController extends Controller
 {
     public function showLoginForm()
     {
-
-        return view('auth.landlord.login');
+        return view('slimer-tenancy::auth.landlord.login');
     }
 
     public function login(Request $request)

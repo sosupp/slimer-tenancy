@@ -20,7 +20,7 @@ class LandlordMigrate extends Command
      *
      * @var string
      */
-    protected $description = 'Run migrations for the landlord schema in susu_crm_dev database';
+    protected $description = 'Run migrations for the landlord schema in database';
 
     /**
      * Execute the console command.

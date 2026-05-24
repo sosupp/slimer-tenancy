@@ -71,7 +71,7 @@ class TenantMigrate extends Command
         // Pass in dynamic commands that will be called to seed default data if needed
             // after database is migrated
 
-            $commands = config('slimetenancy.tenant.commands_after_migration');
+            $commands = config('slimertenancy.tenant.commands_after_migration');
 
             if($commands){
                 foreach($commands as $command){

@@ -41,11 +41,16 @@ class SlimerTenancyServiceProvider extends ServiceProvider
                 __DIR__.'/../database/migrations' => database_path('migrations'),
             ], 'slimer-landlord-migrations');
 
-            // Commands
-            $this->customCommands();
+            $this->publishes([
+                __DIR__ .'/../routes/landlord.php' => base_path('routes/landlord.php')
+            ], 'slimer-landlord-routes');
+
         }
-        
-        // $this->loadRoutesFrom(__DIR__.'/../routes/tenant.php');
+
+        // Commands
+        $this->customCommands();
+
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'slimer-tenancy');
     }
 
     protected function decideConnection()
@@ -100,7 +105,6 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     protected function loadLandlordRoutes()
     {
         if($this->app->booted(function(){
-            // dd('ddd');
             return Route::middleware(['web'])
             ->group(base_path('routes/landlord.php'));
         }));
@@ -110,7 +114,6 @@ class SlimerTenancyServiceProvider extends ServiceProvider
     protected function loadTenantRoutes()
     {
         if($this->app->booted(function(){
-
             Route::middleware(['web'])
             ->group(base_path('routes/tenant.php'));
         }));
