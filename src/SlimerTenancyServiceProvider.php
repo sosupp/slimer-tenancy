@@ -10,6 +10,7 @@ use Sosupp\SlimerTenancy\Console\LandlordInstall;
 use Sosupp\SlimerTenancy\Console\SlimerInstall;
 use Sosupp\SlimerTenancy\Console\TenantMigrate;
 use Sosupp\SlimerTenancy\Console\LandlordMigrate;
+use Sosupp\SlimerTenancy\Console\TenantNewMigration;
 use Sosupp\SlimerTenancy\Services\Tenant\TenantResolverService;
 
 
@@ -98,6 +99,7 @@ class SlimerTenancyServiceProvider extends ServiceProvider
             LandlordInstall::class,
             LandlordAdmin::class,
             TenantMigrate::class,
+            TenantNewMigration::class,
             TenantCreate::class,
         ]);
     }
