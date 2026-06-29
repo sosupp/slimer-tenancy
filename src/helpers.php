@@ -75,3 +75,16 @@ if(! function_exists('tenantHasSms')){
         ->value > 0;
     }
 }
+
+
+if (! function_exists('tenantPublicImage')) {
+    function tenantPublicImage(?string $file = null): string
+    {
+        // If tenant ID is explicitly passed, use it
+        if ($file == null) {
+            return '';
+        }
+
+        return route('slimer.private.image', $file);
+    }
+}
