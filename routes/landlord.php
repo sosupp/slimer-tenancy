@@ -1,7 +1,12 @@
 <?php
 use App\Livewire\Landlord\LandlordHome;
 use App\Livewire\Landlord\TenantList;
+use App\Livewire\Landlord\Blogs\BlogMake;
+use App\Livewire\Landlord\Blogs\BlogsList;
 use Illuminate\Support\Facades\Route;
+use Sosupp\SlimerTenancy\Http\Controllers\Slimer\Site\BlogController;
+use Sosupp\SlimerTenancy\Http\Controllers\Slimer\Site\DemoAccountController;
+use Sosupp\SlimerTenancy\Http\Controllers\Slimer\Site\FaqController;
 use Sosupp\SlimerTenancy\Http\Controllers\Slimer\Landlord\Auth\LandlordAuthController;
 use Sosupp\SlimerTenancy\Http\Controllers\Slimer\Landlord\Auth\LandlordConfirmablePasswordController;
 use Sosupp\SlimerTenancy\Http\Controllers\Slimer\Landlord\Auth\LandlordEmailVerificationNotificationController;
@@ -54,4 +59,30 @@ Route::middleware('auth:landlord')->group(function () {
     Route::get('/tenants', TenantList::class)
     ->name('landlord.tenants.index');
 
+    Route::get('/blog-list', BlogsList::class )->name('landlord.blogs.index');
+    Route::get('/blog/create/{blog?}', BlogMake::class )->name('landlord.blog.make');
+
+});
+
+Route::controller(DemoAccountController::class)->group(function () {
+    Route::get('/demo-account/{token?}', 'index')->name('site.demo.index');
+});
+
+Route::controller(BlogController::class)->group(function(){
+    Route::get('blog/{blog}/banner', 'banner')
+    ->name('blog.banner');
+
+    Route::get('blog', 'index')
+    ->name('blog.index');
+
+    Route::get('blog/all', 'index')
+    ->name('blog.all');
+
+    Route::get('blog/{blog}', 'show')
+    ->name('blog.show');
+
+});
+
+Route::controller(FaqController::class)->group(function(){
+    Route::get('/faqs', 'index')->name('faq.index');
 });

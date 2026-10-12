@@ -1,28 +1,30 @@
 <?php
 namespace {{ namespace }};
 
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
-use Illuminate\Support\Collection;
+use Sosupp\SlimerTenancy\Mail\CompleteDemoAccount;
+use Sosupp\SlimerTenancy\Models\Landlord\DemoAccount;
+use Sosupp\SlimerTenancy\Services\Landlord\DemoCrudService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Sosupp\SlimDashboard\Concerns\Filters\WithDateFilters;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
 use Sosupp\SlimDashboard\Html\HtmlForm;
 use Sosupp\SlimDashboard\Html\ListCard;
 use Sosupp\SlimDashboard\Html\PageCtas;
-use Sosupp\SlimDashboard\Html\Breadcrumb;
+
 use Sosupp\SlimDashboard\Html\PageFilter;
-use Sosupp\SlimDashboard\Html\Tables\Rows;
-
 use Sosupp\SlimDashboard\Html\Tables\Columns;
-use Sosupp\SlimDashboard\ValueObjects\CardEdit;
-use Sosupp\SlimDashboard\Concerns\HasModalPanel;
-use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Html\Tables\Rows;
 use Sosupp\SlimDashboard\Livewire\Tables\BaseTable;
-use Sosupp\SlimerTenancy\Models\Landlord\DemoAccount;
-use Sosupp\SlimDashboard\Concerns\Filters\WithDateFilters;
-use Sosupp\SlimerTenancy\Services\Landlord\DemoCrudService;
 use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+use Sosupp\SlimDashboard\ValueObjects\CardEdit;
 
-
+#[Layout('components.layouts.landlord')]
 class DemoList extends BaseTable
 {
     use StatusToggleable, HasModalPanel,
@@ -39,7 +41,7 @@ class DemoList extends BaseTable
 
     public function mount()
     {
-        $this->subnav = 'change me';
+        $this->subnav = 'Demo Accounts';
     }
 
     public function useModel()
@@ -67,19 +69,21 @@ class DemoList extends BaseTable
     #[Computed]
     public function tableRecords()
     {
-        return (new DemoCrudService)
+        return ((new DemoCrudService)
         ->search(term: $this->search)
-        ->withTrashed()
+        // ->withTrashed()
         ->orderBy(direction: 'desc')
         ->forDate(date: $this->selectedDate)
-        ->paginate(limit: $this->recordPerPage);
+        ->paginate(limit: $this->recordPerPage));
     }
 
     public function tableActions()
     {
-        return Rows::action(name: 'manage', link: '')
-        ->action(name: 'edit', link: '')
-        ->action(name: 'delete', link: '')
+        return Rows::action(
+            name: 'notify', link: 'button', wireAction: 'sendNotification'
+        )
+        ->action(name: 'edit', link: '', icon:'fas fa-edit')
+        ->action(name: 'delete', link: '', icon:'fas fa-trash')
         ->make();
     }
 
@@ -114,7 +118,7 @@ class DemoList extends BaseTable
 
     public function breadcrumbData()
     {
-        return Breadcrumb::nav(name: 'Change me', url: '', isBase: false, isCurrent: true)
+        return Breadcrumb::nav(name: 'Demos', url: '', isBase: false, isCurrent: true)
         ->make();
     }
 
@@ -232,5 +236,26 @@ class DemoList extends BaseTable
         return $this->panelExtraView();
     }
 
+
+    public function sendNotification(DemoAccount $demoAccount)
+    {
+        // dd($demoAccount, $demoAccount['status'], $demoAccount['otp'] !== null);
+
+        if($demoAccount['status'] == 'active'){
+            return $this->failAlert('This demo account is already active');
+        }
+
+        // Send welcome email
+        if($demoAccount['status'] == 'pending' && $demoAccount['otp'] !== null){
+            $result = Mail::to([$demoAccount['email'], 'ps.sosu@gmail.com'])
+            ->send(new CompleteDemoAccount(
+                demo: $demoAccount,
+            ));
+
+            if($result){
+                $this->successAlert('Reminder email sent...');
+            }
+        }
+    }
 
 }

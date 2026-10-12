@@ -1,0 +1,485 @@
+<?php
+
+namespace {{ namespace }};
+
+use Sosupp\SlimerTenancy\Mail\Welcome;
+use Sosupp\SlimerTenancy\Models\Landlord\DemoAccount;
+use Sosupp\SlimerTenancy\Services\Tenant\TenantCrudService;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Livewire\Component;
+
+class MakeDemoAccount extends Component
+{
+    public $ownerName;
+    public $ownerEmail;
+    public $ownerPhone;
+
+    public $selectedPlan;
+    public $verificationCode;
+
+    public $businessName;
+    public $shortName;
+    public $susuType;
+    public $tenantId;
+
+    public $useShortName;
+
+    public $nextStep = 'owner';
+
+    public $toDashboard = '#';
+
+    public $token;
+
+    /**
+     * Single source of truth for this flow's session state.
+     */
+    private function sessionKey(): string
+    {
+        return 'demo_setup';
+    }
+
+    private function getSession(): array
+    {
+        return session($this->sessionKey(), [
+            'next_step' => 'owner',
+            'owner_name' => null,
+            'owner_email' => null,
+            'owner_phone' => null,
+            'business_name' => null,
+            'short_name' => null,
+            'tenant_id' => null,
+            'demo_owner' => null,
+            'demo_tenant' => null,
+            'portal_link' => null,
+        ]);
+    }
+
+    private function putSession(array $data): void
+    {
+        session([$this->sessionKey() => array_merge($this->getSession(), $data)]);
+    }
+
+    private function forgetSession(): void
+    {
+        session()->forget($this->sessionKey());
+    }
+
+    public function mount()
+    {
+        $this->continueSetup();
+
+        $state = $this->getSession();
+
+        $this->nextStep = $state['next_step'] ?? 'owner';
+
+        // dd($this->nextStep);
+        $this->forgetSession();
+
+        // Validate step progression
+        if ($this->nextStep === 'verify' && (!$state['owner_name'] || !$state['owner_email'] || !$state['owner_phone'])) {
+            $this->nextStep = 'owner';
+            $this->putSession(['next_step' => 'owner']);
+        } elseif ($this->nextStep === 'account' && (!$state['demo_owner'] || !$state['demo_owner']['is_verified'])) {
+            $this->nextStep = 'verify';
+            $this->putSession(['next_step' => 'verify']);
+        } elseif ($this->nextStep === 'success' && !$state['portal_link']) {
+            $this->nextStep = 'account';
+            $this->putSession(['next_step' => 'account']);
+        }
+
+        // dd($this->nextStep);
+
+        if ($this->nextStep !== null) {
+            $this->dispatch('next-step', step: $this->nextStep);
+            $this->businessName = $state['business_name'];
+            $this->shortName = $state['short_name'];
+            $this->ownerName = $state['owner_name'];
+            $this->ownerEmail = $state['owner_email'];
+            $this->ownerPhone = $state['owner_phone'];
+            $this->tenantId = $state['tenant_id'];
+        }
+    }
+
+    public function addOwner()
+    {
+        $key = 'add-owner'.Str::ulid();
+
+        // dd($key);
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+            $this->dispatch('v-error', message: "Too many attempts. Please try again in {$seconds} seconds.");
+            return;
+        }
+
+        RateLimiter::hit($key, 60);
+
+        $validated = $this->validate(
+            rules: [
+                'ownerName' => ['required', 'string', 'min:3', 'max:255'],
+                'ownerEmail' => [
+                    'required', 'email', 'max:100',
+                    Rule::unique('demo_accounts', 'email')
+                ],
+                'ownerPhone' => [
+                    'required', 'string', 'max:20',
+                    'regex:/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/',
+                ]
+            ]
+        );
+
+        $validated['ownerEmail'] = str($this->ownerEmail)->lower()->squish()->value;
+
+        $verificationCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        try {
+            $account = DB::transaction(function () use ($validated, $verificationCode) {
+                return DemoAccount::query()
+                    ->lockForUpdate()
+                    ->updateOrCreate(
+                        ['email' => $validated['ownerEmail']],
+                        [
+                            'owner' => $this->ownerName,
+                            'phone' => $this->ownerPhone,
+                            'otp' => $verificationCode,
+                            'otp_sent_at' => now(),
+                        ]
+                    );
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Demo account creation race condition', ['error' => $e->getMessage()]);
+            $this->dispatch(
+                event: 'v-error',
+                message: 'This email or phone is already being processed. Please try again.'
+            );
+            return;
+        }
+
+        $result = $account->notify(new \Sosupp\SlimerTenancy\Notifications\Saas\NewDemoAccount(
+            verificationCode: $verificationCode
+        ));
+
+        $this->putSession([
+            'next_step' => 'verify',
+            'owner_name' => $this->ownerName,
+            'owner_email' => $validated['ownerEmail'],
+            'owner_phone' => $this->ownerPhone,
+        ]);
+
+        $this->dispatch('next-step', step: 'verify');
+    }
+
+    public function withVerification()
+    {
+        // Ensure owner step was completed
+        $state = $this->getSession();
+        if (!$state['owner_name'] || !$state['owner_email'] || !$state['owner_phone']) {
+            $this->dispatch('v-error', message: 'Please complete the owner information first.');
+            return;
+        }
+
+        $key = 'verify-otp'.Str::ulid();
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            $this->dispatch(
+                event: 'v-error',
+                message: "Too many attempts. Please try again in {$seconds} seconds."
+            );
+
+            return;
+        }
+
+        RateLimiter::hit($key, 60);
+
+        $owner = DemoAccount::query()
+        ->where('status', 'pending')
+        ->where('otp', $this->verificationCode)
+        ->first([
+            'id', 'otp', 'is_verified', 'owner',
+            'email', 'phone', 'status', 'company', 'short_name',
+            'otp_sent_at', 'expires_at'
+        ]);
+
+        // dd($owner);
+
+        if ($owner) {
+            if ($owner->expires_at && $owner->expires_at->isPast()) {
+                $this->dispatch(event: 'v-error', message: 'Verification code has expired');
+                return;
+            }
+
+            $owner->update([
+                'is_verified' => true,
+            ]);
+
+            $this->putSession([
+                'next_step' => 'account',
+                'demo_owner' => $owner,
+            ]);
+
+            $this->dispatch('next-step', step: 'account');
+            return;
+        }
+
+        $this->dispatch('v-error', message: 'Verification is incorrect');
+    }
+
+    public function finalize()
+    {
+        // Ensure verification step was completed
+        $state = $this->getSession();
+        if (!$state['demo_owner'] || !$state['demo_owner']['is_verified']) {
+            $this->dispatch('v-error', message: 'Please complete the verification step first.');
+            return;
+        }
+
+        $validated = $this->validate(
+            rules: [
+                'businessName' => [
+                    'required', 'min:3',
+                    'string',
+                ],
+                'shortName' => [
+                    'required', 'min:3',
+                    Rule::unique('tenants', 'subdomain')
+                    ->ignore($this->tenantId)
+                ],
+                'susuType' => ['required', 'in:traditional,cooperative,group,welfare'],
+            ],
+            messages: [
+                'businessName.required' => 'Enter your business name.',
+                'shortName.required' => 'Choose a short name for your business.',
+                'susuType.required' => 'Select a susu business operation type',
+            ]
+        );
+
+        $useShortName = cleanName($this->shortName);
+        $this->shortName = $useShortName;
+
+        $state = $this->getSession();
+        $demo = $state['demo_owner'];
+
+        $schema = 'tenant_'.str($useShortName)->slug('_');
+        $schema = preg_replace('/[^a-zA-Z0-9_]/', '', $schema);
+
+        $validated['schema'] = $schema;
+        $validated['domain'] = $useShortName.'.'.config('slimertenancy.root.domain');
+        $validated['subdomain'] = $useShortName;
+
+        $validated['name'] = $this->businessName;
+        $validated['owner'] = $demo['owner'];
+        $validated['email'] = $demo['email'];
+        $validated['phone'] = $demo['phone'];
+        $validated['susuType'] = $this->susuType;
+
+        try {
+            $tenant = DB::transaction(function () use ($validated, $useShortName, $demo, $schema) {
+                $tenant = (new TenantCrudService)->make(
+                    id: $this->tenantId ?? null,
+                    data: $validated,
+                );
+
+                if ($tenant) {
+                    $this->tenantId = $tenant->id;
+
+                    $demo->update([
+                        'status' => 'active',
+                        'company' => $this->businessName,
+                        'short_name' => $useShortName,
+                        'otp' => null,
+                    ]);
+
+                    $tenantDB = DB::statement("CREATE SCHEMA IF NOT EXISTS \"{$schema}\"");
+
+                    if (!$tenantDB) {
+                        throw new \Exception('Failed to create database schema');
+                    }
+                }
+
+                return $tenant;
+            });
+        } catch (\Exception $e) {
+            Log::error('Schema creation failed', ['error' => $e->getMessage()]);
+            $this->dispatch('next-step', step: 'failed');
+            return;
+        }
+
+        if ($tenant) {
+            $this->putSession([
+                'business_name' => $this->businessName,
+                'short_name' => $useShortName,
+                'tenant_id' => $tenant->id,
+                'demo_tenant' => [
+                    'id' => $tenant->id,
+                    'schema' => $tenant->schema,
+                    'tenant' => $tenant,
+                ],
+            ]);
+
+            $result = $this->finish($tenant);
+
+            if ($result) {
+                $this->reset(['businessName', 'ownerName', 'ownerEmail', 'ownerPhone']);
+
+                $this->putSession([
+                    'next_step' => 'success',
+                    'owner_name' => null,
+                    'owner_email' => null,
+                    'owner_phone' => null,
+                    'business_name' => null,
+                ]);
+
+                $this->dispatch('next-step', step: 'success');
+            } else {
+                $this->dispatch('next-step', step: 'failed');
+            }
+        }
+    }
+
+    public function goto()
+    {
+        $state = $this->getSession();
+
+        $path = request()->getScheme() . "://"
+            . $state['short_name'] .'.' . rootDomain();
+
+        $this->reset([
+            'ownerName', 'ownerEmail', 'ownerPhone',
+            'businessName', 'shortName', 'nextStep',
+        ]);
+
+        $this->forgetSession();
+        session()->regenerate();
+        return redirect()->away($path);
+    }
+
+    private function finish($tenant = null)
+    {
+        $state = $this->getSession();
+        $tenant = $state['demo_tenant']['tenant'];
+
+        if ($tenant && $tenant->is_deployed === false) {
+            config(['database.default' => 'tenant']);
+
+            config([
+                'database.connections.tenant.schema' => $tenant['schema'],
+                'database.connections.tenant.search_path' => $tenant['schema'] . ',public',
+            ]);
+
+            DB::purge('tenant');
+            DB::reconnect('tenant');
+
+            $owner = str($tenant['owner'])->explode(' ')->toArray();
+
+            if (!defined('STDIN')) {
+                define('STDIN', fopen('php://stdin', 'r'));
+            }
+
+            $output = null;
+
+            $result = Artisan::call(
+                command: 'app:tenant-migrate',
+                parameters: [
+                    '--refresh' => true,
+                    '--tenant' => $tenant['id'],
+                    '--owner' => [
+                        'firstName' => $owner[0],
+                        'lastName' => $owner[1] ?? $owner[0],
+                        'mobile' => $tenant['phone'],
+                        'email' => $tenant['email'],
+                        'business' => [
+                            'name' => $tenant->name,
+                            'short_name' => $tenant->subdomain,
+                            'email' => $tenant['email'],
+                            'phone' => $tenant['phone'],
+                        ]
+                    ]
+                ],
+                outputBuffer: $output
+            );
+
+            if ($result == 0) {
+                $useEmail = $tenant->email;
+                $businessName = $tenant->name;
+                $shortName = $tenant->subdomain;
+                $this->useShortName = $shortName;
+
+                $tenant->update(['is_deployed' => true]);
+                $tenant = null;
+
+                config(['database.default' => 'pgsql']);
+
+                DB::purge('tenant');
+                DB::reconnect('pgsql');
+
+                $portal = $this->useShortName.'.'.rootDomain();
+                $this->dispatch('portal-ready', $portal);
+
+                $this->putSession([
+                    'demo_owner' => null,
+                    'demo_tenant' => null,
+                    'portal_link' => $portal,
+                ]);
+
+                Mail::to([$useEmail, 'ps.sosu@gmail.com', 'hildaemefa18@gmail.com'])
+                ->send(new Welcome(
+                    owner: $owner[0],
+                    businessName: $businessName,
+                    url: tenantUrl($shortName)
+                ));
+            } else {
+                return false;
+            }
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function portal()
+    {
+        return $this->useShortName.'.'.rootDomain();
+    }
+
+    public function continueSetup()
+    {
+        if ($this->token) {
+            $this->putSession([
+                'demo_owner' => null,
+                'next_step' => null,
+            ]);
+
+            $this->verificationCode = $this->token;
+            $this->withVerification();
+        }
+    }
+
+    public function hasPortalLink()
+    {
+        return $this->getSession()['portal_link'] ? true : false;
+    }
+
+    public function susuTypes()
+    {
+        return [
+            ['id' => 'traditional', 'name' => 'Susu Collector or Vendor', 'description' => 'Traditional susu collection where contributions are collected daily, weekly, or monthly from members.'],
+            ['id' => 'cooperative', 'name' => 'Co-operative Union', 'description' => 'Member-owned organization that operates for the benefit of members with shared goals.'],
+            ['id' => 'group', 'name' => 'Cycle or Group', 'description' => 'Rotating savings and credit association where members contribute to a common fund and take turns receiving the total amount.'],
+            ['id' => 'welfare', 'name' => 'Welfare Group or Union', 'description' => 'Social welfare groups that provide support and benefits to members in times of need, such as sickness, death, or celebrations.']
+        ];
+    }
+
+    public function render()
+    {
+        return view('slimer-tenancy::livewire.site.demo.make-demo-account-v2');
+    }
+}

@@ -1,0 +1,162 @@
+<?php
+namespace {{ namespace }};
+
+use Sosupp\SlimerTenancy\Models\Landlord\Blog;
+use Livewire\Attributes\Computed;
+use Illuminate\Support\Collection;
+use Illuminate\Contracts\View\View;
+use Sosupp\SlimDashboard\Html\ListCard;
+use Sosupp\SlimDashboard\Html\PageCtas;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimerTenancy\Services\Landlord\BlogsCrudService;
+use Livewire\Attributes\Layout;
+use Sosupp\SlimDashboard\Html\Tables\Rows;
+use Sosupp\SlimDashboard\Html\Tables\Columns;
+use Sosupp\SlimDashboard\ValueObjects\CardEdit;
+use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Livewire\Tables\BaseTable;
+
+#[Layout('components.layouts.landlord')]
+class BlogsList extends BaseTable
+{
+    use StatusToggleable;
+
+    public function mount()
+    {
+        $this->pageTitle = 'Blog';
+    }
+
+    public function useModel()
+    {
+        return Blog::class;
+    }
+
+    public function useCustomTable() { }
+
+    public function tableCols()
+    {
+        return Columns::make()
+        ->column(key: 'image', name: 'banner', label: 'image', type: 'image')
+        ->column(name: 'title', label: 'title')
+        ->column(name: 'name', label: 'category', relation: 'category')
+        ->column(name: 'views', label: 'views')
+        ->column(name: 'status', label: 'status', type: 'toggle')
+        ->build();
+    }
+
+    #[Computed]
+    public function tableRecords()
+    {
+        return (new BlogsCrudService)
+        ->search(term: $this->search)
+        ->withTrashed()
+        ->orderBy(direction: 'desc')
+        ->paginate(limit: $this->recordPerPage);
+    }
+
+    public function tableActions()
+    {
+        return Rows::action(name: 'edit', link: 'landlord.blog.make', icon:'fas fa-edit')
+        ->action(name: 'delete', link: '', icon:'fas fa-trash')
+        ->make();
+    }
+
+    public function pageCta()
+    {
+        return PageCtas::cta(
+            type: 'link', label: 'new blog', route: route('landlord.blog.make'),
+        )
+        ->make();
+    }
+
+    public function defineSearch() { }
+
+    public function showPagination()
+    {
+        return true;
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'Blog', url: '', isBase: false, isCurrent: true)
+        ->make();
+    }
+
+    // Mobile listings
+    public function hasCardListing()
+    {
+        return true;
+    }
+
+    public function cardContents()
+    {
+        return ListCard::content()
+        ->row(name: 'title', label: null, key: 'r1')
+        ->row(
+            name: 'created_at', label: null, key: 'r2',
+            type: 'date', valueCss: 'dim-text'
+        )
+        ->make();
+    }
+
+    public function withListCardEdit($record): CardEdit|Collection|false
+    {
+        return false;
+        return (new CardEdit(
+            title: 'EDIT: ',
+            form: ''
+        ));
+    }
+
+    public function mobileEditImageName($record): string
+    {
+        return $record->title;
+    }
+
+    public function mobileModalCta(): bool
+    {
+        return true;
+    }
+
+    public function mobileImageFile($record): ?string
+    {
+        return $record->banner;
+    }
+
+    public function withCardModalData($record): Collection
+    {
+        return collect([
+            'title' => '',
+            'image' => '',
+            'edit' => '',
+        ]);
+        return collect([
+            'title' => 'Blog Info',
+            'image' => '',
+            'edit' => '',
+            'heading' => $record->title,
+            'content' => $record->content,
+            'status' => $record->status,
+            'source' => $record->source,
+        ]);
+    }
+
+    public function withCardModalView(): string|View
+    {
+        return <<<HTML
+            <div class="card-item-modal-details">
+                <p><b></b><span x-text="cardItem[1]"></span></p>
+                <p><b></b><span x-text="cardItem[2]"></span></p>
+                <p><b></b><span x-text="cardItem[3]"></span></p>
+                <p><b></b><span x-text="cardItem[4]"></span></p>
+            </div>
+        HTML;
+    }
+
+    public function withListCardImage(): string|View
+    {
+        // return 'editable' to make image uploadable inline
+        return 'editable';
+    }
+
+}
