@@ -70,6 +70,7 @@ class SlimerInstall extends Command
 
         if(empty($data)){
             $updates = [
+                'DB_QUEUE_CONNECTION'       => 'pgsql',
                 'SLIMER_TENANCY_ENABLED'       => 'false',
                 'SLIMER_TENANCY_ROOT_DOMAIN'   => $domain,
                 'SLIMER_TENANCY_LANDLORD_DOMAIN' => 'manage.'.$domain.'.test',

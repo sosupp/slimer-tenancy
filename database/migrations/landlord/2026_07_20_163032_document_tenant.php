@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('document_tenant', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('document_id')->constrained()->nullOnDelete();
-            $table->foreignId('tenant_id')->constrained('tenants')->nullOnDelete();
+            $table->foreignId('document_id');
+            $table->foreignId('tenant_id');
             $table->timestamps();
 
             $table->unique(['document_id', 'tenant_id']);
