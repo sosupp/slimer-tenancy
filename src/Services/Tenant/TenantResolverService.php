@@ -24,7 +24,15 @@ class TenantResolverService
 
             $host = $request->getHost();
 
-            // 1) Subdomain (acme.yourapp.com)
+            // 1) Domain first (yourapp.com)
+            $tenant = $useTenant::where('domain', $host)->first();
+
+            if($tenant){
+                $this->switchConnection($tenant);
+                return $this->resolvedTenant = $tenant;
+            }
+
+            // 2) Subdomain (acme.yourapp.com)
             $parts = explode('.', $host);
             $sub = $parts[0] ?? null;
             if ($sub && $sub !== 'www' && $sub !== config('slimertenancy.root.domain')) {
@@ -36,9 +44,6 @@ class TenantResolverService
                     return $this->resolvedTenant = $tenant;
                 }
             }
-
-            // 2) Domain
-            $tenant = $useTenant::where('domain', $host)->first();
 
             // dd($host, $tenant);
             // if ($tenant) return $tenant;
