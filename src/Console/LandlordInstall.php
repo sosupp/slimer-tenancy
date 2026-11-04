@@ -40,6 +40,10 @@ class LandlordInstall extends Command
                 'TenantManage',
                 'TenantOverview',
                 'TenantSettings',
+                'Blogs/BlogsList',
+                'Blogs/BlogMake',
+                'Site/FaqsList',
+                'Site/Demo/MakeDemoAccount',
             ];
 
             foreach ($stubFiles as $file) {
