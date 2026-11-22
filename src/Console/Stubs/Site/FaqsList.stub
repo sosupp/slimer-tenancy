@@ -1,0 +1,240 @@
+<?php
+namespace {{ namespace }};
+
+use Sosupp\SlimerTenancy\Models\Landlord\Faq;
+use Sosupp\SlimerTenancy\Services\Landlord\FaqCrudService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Sosupp\SlimDashboard\Concerns\HasModalPanel;
+use Sosupp\SlimDashboard\Concerns\StatusToggleable;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimDashboard\Html\HtmlForm;
+use Sosupp\SlimDashboard\Html\ListCard;
+use Sosupp\SlimDashboard\Html\PageCtas;
+use Sosupp\SlimDashboard\Html\Tables\Columns;
+use Sosupp\SlimDashboard\Html\Tables\Rows;
+use Sosupp\SlimDashboard\Livewire\Tables\BaseTable;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+use Sosupp\SlimDashboard\ValueObjects\CardEdit;
+
+use function Laravel\Prompts\textarea;
+
+#[Layout('components.layouts.landlord')]
+class FaqsList extends BaseTable
+{
+    use StatusToggleable , HasModalPanel, HandlesImageUploads ;
+
+    
+    public $selectedModelId;
+    public $question;
+    public $answer;
+    public $category;
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+    
+
+    public function mount()
+    {
+        $this->subnav = 'FAQs';
+    }
+
+    public function useModel()
+    {
+        return Faq::class;
+    }
+
+    public function useCustomTable() { }
+
+    public function tableCols()
+    {
+        return Columns::make()
+        ->column(name: 'question', label: 'question')
+        ->column(name: 'category', label: 'category')
+        ->build();
+    }
+
+    #[Computed]
+    public function tableRecords()
+    {
+        return (new FaqCrudService)
+        ->search(term: $this->search)
+        ->withTrashed()
+        ->orderBy(direction: 'desc')
+        ->paginate(limit: $this->recordPerPage);
+    }
+
+    public function tableActions()
+    {
+        return Rows::action(
+            name: 'edit', link: '', component:'updateForm', sidePanel:true,
+            panelHeading: 'Edit Faq', icon: 'fas fa-edit'
+        )
+        ->action(name: 'delete', link: '', icon:'fas fa-trash')
+        ->make();
+    }
+
+    public function pageCta()
+    {
+        return PageCtas::cta(
+            type: 'link', label: 'Add', route: null,
+             withSidePanel: true, component: 'makeForm', 
+        )
+        ->make();
+    }
+
+    public function defineSearch() { }
+
+    public function showPagination()
+    {
+        return true;
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'FAQs', url: '', isBase: false, isCurrent: true)
+        ->make();
+    }
+
+    // Mobile listings
+    public function hasCardListing()
+    {
+        return true;
+    }
+
+    public function cardContents()
+    {
+        return ListCard::content()
+        // ->row(name: 'id', label: '#', key: 'id')
+        ->row(name: 'question', label: 'question', key: 'question')
+        ->row(name: 'category', label: 'category', key: 'category')
+        ->make();
+    }
+
+    public function withListCardEdit($record): CardEdit|Collection|false
+    {
+        return false;
+        return (new CardEdit(
+            title: 'EDIT: ',
+            form: ''
+        ));
+    }
+
+    public function mobileEditImageName($record): string
+    {
+        return '';
+    }
+
+    public function withCardModalData($record): Collection
+    {
+        return collect([
+            'title' => '',
+            'image' => '',
+            'edit' => '',
+        ]);
+    }
+
+    public function withCardModalView(): string|View
+    {
+        return <<<HTML
+            <div class="card-item-modal-details">
+                <!-- <p><b>Item Count: </b><span x-text="cardItem[1]"></span></p>
+                <p><b>Order Date: </b><span x-text="cardItem[2]"></span></p>
+                <p><b>Delivery Method: </b><span x-text="cardItem[3]"></span></p>
+                <p><b>Current Status: </b><span x-text="cardItem[4]"></span></p> -->
+            </div>
+
+            <div class="card-item-modal-ctas">
+                <button type="button" class="cta-btn card-item-modal-cta as-pointer"
+                    >Preview</button>
+            </div>
+        HTML;
+    }
+
+    public function withListCardImage(): string|View
+    {
+        // return 'editable' to make image uploadable inline
+        return '';
+    }
+
+    
+    // Inline form CRUD
+    public function sidePanelModel($id)
+    {
+        // Below is the selected model to use
+        $this->selectedModelId = $id; // You can change property name
+        $model = $this->tableRecords->where('id', $id)->first();
+
+        // More code here
+        $this->question = $model->question;
+        $this->answer = $model->answer;
+        $this->category = $model->category;
+
+        
+    }
+
+    public function panelExtraView(): string|View
+    {
+        return HtmlForm::make()
+        ->specialInput()
+        ->input(name: 'question', label: 'Question')
+        ->textarea(name: 'answer', label: 'Answer', withEditor: false)
+        ->select(
+            name: 'category', label: 'category', id: 'category',
+              options: [
+                ['id' => 'getting-started', 'name' => 'Getting Started'],
+                ['id' => 'payments-contributions', 'name' => 'Payments & Contributions'],
+                ['id' => 'withdrawals-payouts', 'name' => 'Withdrawals & Payouts'],
+                ['id' => 'member-management', 'name' => 'Member Management'],
+                ['id' => 'subscription-billing', 'name' => 'Subscription & Billing'],
+                ['id' => 'receipts-records', 'name' => 'Receipts & Records'],
+                ['id' => 'security-trust', 'name' => 'Security & Trust'],
+                ['id' => 'support', 'name' => 'Support'],
+            ], wireLive: false,
+        )
+        ->button(label: 'save')
+        ->build();
+    }
+
+    public function save()
+    {
+        $validated = $this->validate(
+            rules: [
+                'question' => 'required|string',
+                'answer' => 'required|string',
+                'category' => 'nullable|string'
+            ]
+        );
+
+        // dd($validated);
+
+        $result = (new FaqCrudService)->make(
+            id: $this->selectedModelId,
+            data: $validated,
+        );
+
+        if($result){
+            $this->reset('selectedModelId');
+
+            $this->successAlert(message: 'Record action successful...');
+        }
+    }
+
+    public function makeForm()
+    {
+        // Reset properties that are needed 
+        $this->reset('selectedModelId');
+        return $this->panelExtraView();
+    }
+
+    public function updateForm()
+    {
+        return $this->panelExtraView();
+    }
+    
+
+}

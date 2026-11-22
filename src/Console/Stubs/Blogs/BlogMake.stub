@@ -1,0 +1,192 @@
+<?php
+namespace {{ namespace }};
+
+use Sosupp\SlimerTenancy\Models\Landlord\Blog;
+use Sosupp\SlimerTenancy\Services\Landlord\BlogsCrudService;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Session;
+use Livewire\WithFileUploads;
+use Override;
+use Sosupp\SlimDashboard\Concerns\HtmlForms\HandlesTabContent;
+use Sosupp\SlimDashboard\Html\Breadcrumb;
+use Sosupp\SlimDashboard\Livewire\Forms\BaseForm;
+use Sosupp\SlimDashboard\Html\HtmlForm;
+use Sosupp\SlimDashboard\Livewire\Traits\HandlesImageUploads;
+use Sosupp\SlimDashboard\Livewire\Traits\HandleUserAlerts;
+
+#[Layout('components.layouts.landlord')]
+class BlogMake extends BaseForm
+{
+    use WithFileUploads, HandlesTabContent, HandleUserAlerts, HandlesImageUploads;
+
+    public ?Blog $blog = null;
+
+    public $isUpdate = false;
+
+    #[Session()]
+    public $title;
+    #[Session()]
+    public $source;
+    #[Session()]
+    public $contributor;
+
+    public $content;
+
+    public $summary;
+    #[Session()]
+    public $category;
+    #[Session()]
+    public $keywords;
+    #[Session()]
+    public $imageCaption;
+    #[Session()]
+    public $banner;
+
+    public function uploadImageOnSave(): bool
+    {
+        return true;
+    }
+
+    public function fileAsPrivate(): bool
+    {
+        return false;
+    }
+
+    public function storageDirectory()
+    {
+        return null;
+    }
+
+    public function customImagePropertyName()
+    {
+        return 'banner';
+    }
+
+    public function relation() { }
+
+    public function mount()
+    {
+        // Auth::login();
+        $this->isUpdateDetails();
+        $this->pageTitle = $this->isUpdate ? 'Edit Blog' : 'Add Blog';
+        $this->selectedTab = 'meta';
+        $this->imagePath = $this->previewImagePath;
+
+        // dd($this->content);
+    }
+
+    public function wrapperCss()
+    {
+        return '';
+    }
+
+    public function colForImageName(): string
+    {
+        return '';
+    }
+
+    public function buildForm()
+    {
+        return HtmlForm::make()
+        ->tabs(
+            name: 'meta',
+            content: HtmlForm::make()
+            ->specialInput()
+            ->input(name: 'title', label: 'Title', placeholder: '')
+            ->input(name: 'keywords', label: 'Keywords (option)', placeholder: 'Separate keywords by comma')
+            ->input(name: 'source', label: 'Source')
+            ->input(name: 'contributor', label: 'Contributor')
+            ->imageInput(imagePath: $this->imagePath)
+            ->input(name: 'imageCaption', label: 'Image caption')
+            ->build(),
+        )
+        ->tabs(
+            name: 'compose',
+            content: HtmlForm::make()
+            ->specialInput()
+            ->textEditor(name: 'content', id: 'content', label: 'Content')
+            ->textarea(name: 'summary', id: 'summary', withEditor:false )
+            ->build(),
+        )
+        ->selectedTab(name: $this->selectedTab)
+        ->button(label: $this->isUpdate ? 'Update' : 'Save', class: 'standard-btn')
+        // ->button(label: $this->isUpdate ? 'Update & New' : 'Save & New', defaultSave: 'saveNew')
+        ->build();
+
+        return  HtmlForm::make()
+        ->input(name: 'name', label: '', placeholder: '')
+        ->button();
+    }
+
+    public function extraView(){}
+
+    public function isUpdateDetails()
+    {
+        if($this->blog){
+            $this->isUpdate = true;
+            $this->category = $this->blog->category_id;
+            $this->title = $this->blog->title;
+            $this->keywords = $this->blog->keywords;
+            $this->source = $this->blog->source;
+            $this->contributor = $this->blog->contributor;
+            $this->imageCaption = $this->blog->image_caption;
+            $this->content = $this->blog->content;
+            $this->summary = $this->blog->summary;
+            $this->banner = $this->blog->banner;
+            $this->imagePath = $this->blog->banner;
+        }
+    }
+
+    public function save()
+    {
+        $this->saveBlog();
+
+        $this->redirectRoute(name: 'landlord.blogs.index', navigate: true);
+    }
+
+    public function saveNew()
+    {
+        // dd("ue");
+        $this->saveBlog();
+    }
+
+    public function saveBlog()
+    {
+        $validated = $this->validate(
+            rules: [
+                'title' => 'required|string|min:20',
+                'content' => 'string|nullable',
+                'summary' => 'string|nullable',
+                'source' => 'string|nullable',
+                'contributor' => 'string|nullable',
+                'keywords' => 'string|nullable|max:200',
+                'category' => 'integer|nullable',
+                'imageCaption' => 'string|nullable',
+                'banner' => 'string|nullable'
+
+            ],
+        );
+
+
+        // dd($validated, $this->imagePath, $this->banner, $this->previewImagePath);
+
+        $blog = (new BlogsCrudService)->make(
+            id: $this->blog->id ?? null,
+            data: $validated
+        );
+
+        if($blog){
+            $this->successAlert(message: 'Blog post added...');
+            $this->reset('title', 'content', 'summary', 'source', 'contributor', 'keywords', 'category', 'imageCaption', 'banner', 'previewImagePath', 'imagePath');
+        }
+    }
+
+    public function breadcrumbData()
+    {
+        return Breadcrumb::nav(name: 'Blog', url: route('landlord.site.index',['tab' => 'blogs-list']), isBase: true)
+        ->nav(name: $this->isUpdate ? 'Edit Blog' : 'Add Blog', isCurrent: true)
+        ->make();
+    }
+
+}

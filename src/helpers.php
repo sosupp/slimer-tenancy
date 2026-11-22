@@ -88,3 +88,17 @@ if (! function_exists('tenantPublicImage')) {
         return route('slimer.private.image', $file);
     }
 }
+
+if (!function_exists('supportEmail')) {
+    function supportEmail(string|null $email = 'support@susu-crm.com'): string|null
+    {
+        return $email;
+    }
+}
+
+if (!function_exists('supportPhone')) {
+    function supportPhone(string|null $phone = '+233545044139'): string|null
+    {
+        return $phone;
+    }
+}
